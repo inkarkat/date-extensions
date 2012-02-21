@@ -1,0 +1,49 @@
+#!/bin/bash
+###############################################################################
+##
+# FILE: 	dateex
+# PRODUCT:	tools
+# AUTHOR: 	/^--
+# DATE CREATED:	05-Jan-2012
+#
+###############################################################################
+# CONTENTS: 
+#   Extended human date specifications for the "date" command. 
+#
+# DEPENDENCIES:
+#   - Perl Date::Manip package.
+#
+# REMARKS: 
+#   
+# FILE_SCCS = "@(#)dateex	001	(05-Jan-2012)	tools";
+#
+# REVISION	DATE		REMARKS 
+#	001	05-Jan-2012	file creation
+###############################################################################
+
+typeset -a allargs=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+        --date|-d)  shift; date=$1; shift;;
+        --date=*)   date=${1#--date=}; shift;;
+        -d=*)       date=${1#-d=}; shift;;
+        --date*)    date=${1#--date}; shift;;
+        -d*)        date=${1#-d}; shift;;
+        *)          allargs+=("$1"); shift;;
+    esac
+done
+
+parseDate()
+{
+perl -e '
+use strict;
+use Date::Manip;
+
+print UnixDate($ARGV[0], "%Y-%m-%d %H:%M:%S");
+' "$1" 2>/dev/null
+}
+
+parsedDate=$(parseDate "$date")
+[ "$parsedDate" ] || parsedDate=$date
+exec date --date "$parsedDate" "${allargs[@]}"
