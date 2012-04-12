@@ -9,17 +9,21 @@
 ###############################################################################
 # CONTENTS: 
 #   Extended human date specifications for the "date" command. 
+#   Also understands shortcuts [+-]N[dwmy]. 
 #
 # DEPENDENCIES:
 #   - Perl Date::Manip package.
 #
 # REMARKS: 
 #   
-# FILE_SCCS = "@(#)dateex	001	(05-Jan-2012)	tools";
+# FILE_SCCS = "@(#)dateex	002	(22-Feb-2012)	tools";
 #
 # REVISION	DATE		REMARKS 
+#       002     22-Feb-2012     ENH: Also understand shortcuts [+-]N[dwmy]. 
 #	001	05-Jan-2012	file creation
 ###############################################################################
+
+shopt -qs extglob
 
 typeset -a allargs=()
 while [ $# -ne 0 ]
@@ -34,6 +38,8 @@ do
     esac
 done
 
+# The Perl Date::Manip library understands many human date specifications that
+# /usr/bin/date does not. 
 parseDate()
 {
 perl -e '
@@ -43,6 +49,22 @@ use Date::Manip;
 print UnixDate($ARGV[0], "%Y-%m-%d %H:%M:%S");
 ' "$1" 2>/dev/null
 }
+
+
+# Allow some additional shortcuts that are quite handy. 
+# Since we transform into the common format, this does not depend on the Perl
+# processing, so we do it in the shell wrapper. 
+case $date in
+    ?(+)+([0-9])d)  date="${date//[^0-9]/} days";;
+    ?(+)+([0-9])w)  date="${date//[^0-9]/} weeks";;
+    ?(+)+([0-9])m)  date="${date//[^0-9]/} months";;
+    ?(+)+([0-9])y)  date="${date//[^0-9]/} years";;
+    -+([0-9])d)     date="${date//[^0-9]/} days ago";;
+    -+([0-9])w)     date="${date//[^0-9]/} weeks ago";;
+    -+([0-9])m)     date="${date//[^0-9]/} months ago";;
+    -+([0-9])y)     date="${date//[^0-9]/} years ago";;
+esac
+
 
 parsedDate=$(parseDate "$date")
 [ "$parsedDate" ] || parsedDate=$date
