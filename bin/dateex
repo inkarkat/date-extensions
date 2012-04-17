@@ -7,19 +7,21 @@
 # DATE CREATED:	05-Jan-2012
 #
 ###############################################################################
-# CONTENTS: 
-#   Extended human date specifications for the "date" command. 
-#   Also understands shortcuts [+-]N[dwmy]. 
+# CONTENTS:
+#   Extended human date specifications for the "date" command.
+#   Also understands shortcuts [+-]N[dwmy].
 #
 # DEPENDENCIES:
 #   - Perl Date::Manip package.
 #
-# REMARKS: 
-#   
-# FILE_SCCS = "@(#)dateex	002	(22-Feb-2012)	tools";
+# REMARKS:
 #
-# REVISION	DATE		REMARKS 
-#       002     22-Feb-2012     ENH: Also understand shortcuts [+-]N[dwmy]. 
+# FILE_SCCS = "@(#)dateex	003	(13-Apr-2012)	tools";
+#
+# REVISION	DATE		REMARKS
+#	003	13-Apr-2012	FIX: Short-circuit if no date was passed, i.e.
+#				the current date should be used.
+#	002	22-Feb-2012	ENH: Also understand shortcuts [+-]N[dwmy].
 #	001	05-Jan-2012	file creation
 ###############################################################################
 
@@ -38,8 +40,17 @@ do
     esac
 done
 
+# Short-circuit if no date was passed, i.e. the current date should be used.
+# This not only avoids unnecessary processing, but date actually behaves
+# different when an empty date is passed:
+#   $ date --date '' +%F_%H%M%S
+#   2012-04-13_000000
+#   $ date +%F_%H%M%S
+#   2012-04-13_141147
+[ "$date" ] || exec date "${allargs[@]}"
+
 # The Perl Date::Manip library understands many human date specifications that
-# /usr/bin/date does not. 
+# /usr/bin/date does not.
 parseDate()
 {
 perl -e '
@@ -51,9 +62,9 @@ print UnixDate($ARGV[0], "%Y-%m-%d %H:%M:%S");
 }
 
 
-# Allow some additional shortcuts that are quite handy. 
+# Allow some additional shortcuts that are quite handy.
 # Since we transform into the common format, this does not depend on the Perl
-# processing, so we do it in the shell wrapper. 
+# processing, so we do it in the shell wrapper.
 case $date in
     ?(+)+([0-9])d)  date="${date//[^0-9]/} days";;
     ?(+)+([0-9])w)  date="${date//[^0-9]/} weeks";;
