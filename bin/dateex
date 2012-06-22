@@ -1,10 +1,10 @@
 #!/bin/bash
 ###############################################################################
 ##
-# FILE: 	dateex
-# PRODUCT:	tools
-# AUTHOR: 	/^--
-# DATE CREATED:	05-Jan-2012
+# FILE:         dateex
+# PRODUCT:      tools
+# AUTHOR:       /^--
+# DATE CREATED: 05-Jan-2012
 #
 ###############################################################################
 # CONTENTS:
@@ -16,13 +16,17 @@
 #
 # REMARKS:
 #
-# FILE_SCCS = "@(#)dateex	003	(13-Apr-2012)	tools";
+# FILE_SCCS = "@(#)dateex       004     (18-Apr-2012)   tools";
 #
-# REVISION	DATE		REMARKS
-#	003	13-Apr-2012	FIX: Short-circuit if no date was passed, i.e.
-#				the current date should be used.
-#	002	22-Feb-2012	ENH: Also understand shortcuts [+-]N[dwmy].
-#	001	05-Jan-2012	file creation
+# REVISION      DATE            REMARKS
+#       004     18-Apr-2012     ENH: Apply preprocessing of shortcuts not just
+#                               on the whole date, but on individual words, to
+#                               allow shortcuts in timespans "2012-04-18 -2d".
+#                               This is useful in todo.sh did 42 after 2d.
+#       003     13-Apr-2012     FIX: Short-circuit if no date was passed, i.e.
+#                               the current date should be used.
+#       002     22-Feb-2012     ENH: Also understand shortcuts [+-]N[dwmy].
+#       001     05-Jan-2012     file creation
 ###############################################################################
 
 shopt -qs extglob
@@ -65,18 +69,23 @@ print UnixDate($ARGV[0], "%Y-%m-%d %H:%M:%S");
 # Allow some additional shortcuts that are quite handy.
 # Since we transform into the common format, this does not depend on the Perl
 # processing, so we do it in the shell wrapper.
-case $date in
-    ?(+)+([0-9])d)  date="${date//[^0-9]/} days";;
-    ?(+)+([0-9])w)  date="${date//[^0-9]/} weeks";;
-    ?(+)+([0-9])m)  date="${date//[^0-9]/} months";;
-    ?(+)+([0-9])y)  date="${date//[^0-9]/} years";;
-    -+([0-9])d)     date="${date//[^0-9]/} days ago";;
-    -+([0-9])w)     date="${date//[^0-9]/} weeks ago";;
-    -+([0-9])m)     date="${date//[^0-9]/} months ago";;
-    -+([0-9])y)     date="${date//[^0-9]/} years ago";;
-esac
+preprocDate=
+for word in $date
+do
+    case $word in
+        ?(+)+([0-9])d)  word="${word//[^0-9]/} days";;
+        ?(+)+([0-9])w)  word="${word//[^0-9]/} weeks";;
+        ?(+)+([0-9])m)  word="${word//[^0-9]/} months";;
+        ?(+)+([0-9])y)  word="${word//[^0-9]/} years";;
+        -+([0-9])d)     word="${word//[^0-9]/} days ago";;
+        -+([0-9])w)     word="${word//[^0-9]/} weeks ago";;
+        -+([0-9])m)     word="${word//[^0-9]/} months ago";;
+        -+([0-9])y)     word="${word//[^0-9]/} years ago";;
+    esac
+    preprocDate=${preprocDate}${preprocDate:+ }${word}
+done
 
 
-parsedDate=$(parseDate "$date")
-[ "$parsedDate" ] || parsedDate=$date
+parsedDate=$(parseDate "$preprocDate")
+[ "$parsedDate" ] || parsedDate=$preprocDate
 exec date --date "$parsedDate" "${allargs[@]}"
