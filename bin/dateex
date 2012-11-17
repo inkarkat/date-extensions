@@ -16,9 +16,11 @@
 #
 # REMARKS:
 #
-# FILE_SCCS = "@(#)dateex       004     (18-Apr-2012)   tools";
+# FILE_SCCS = "@(#)dateex       005     (23-Jun-2012)   tools";
 #
 # REVISION      DATE            REMARKS
+#	005	23-Jun-2012	Allow interpretation of "next Friday in next
+#				month".
 #       004     18-Apr-2012     ENH: Apply preprocessing of shortcuts not just
 #                               on the whole date, but on individual words, to
 #                               allow shortcuts in timespans "2012-04-18 -2d".
@@ -61,8 +63,8 @@ perl -e '
 use strict;
 use Date::Manip;
 
-print UnixDate($ARGV[0], "%Y-%m-%d %H:%M:%S");
-' "$1" 2>/dev/null
+print UnixDate($ARGV[0], "'"$1"'");
+' "$2" 2>/dev/null
 }
 
 
@@ -85,7 +87,13 @@ do
     preprocDate=${preprocDate}${preprocDate:+ }${word}
 done
 
+# Date::Manip understands "next Friday in July", but not "next Friday in next
+# month".
+case $preprocDate in
+    *\ in\ *month*) preprocDate="${preprocDate% in *} in $(parseDate '%B' "${preprocDate##* in }")";;
+    *\ in\ *year*)  preprocDate="${preprocDate% in *} in $(parseDate '%Y' "${preprocDate##* in }")";;
+esac
 
-parsedDate=$(parseDate "$preprocDate")
+parsedDate=$(parseDate '%Y-%m-%d %H:%M:%S' "$preprocDate")
 [ "$parsedDate" ] || parsedDate=$preprocDate
 exec date --date "$parsedDate" "${allargs[@]}"
