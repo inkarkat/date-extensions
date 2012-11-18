@@ -16,9 +16,18 @@
 #
 # REMARKS:
 #
-# FILE_SCCS = "@(#)dateex       005     (23-Jun-2012)   tools";
+# FILE_SCCS = "@(#)dateex       006     (19-Nov-2012)   tools";
 #
 # REVISION      DATE            REMARKS
+#       006	19-Nov-2012	FIX: When Date::Manip isn't available, the "in
+#                               * month / year" preprocessing never works. Move
+#                               the defaulting to the original date into the
+#                               parseDate() function.
+#                               When Date::Manip isn't available and the
+#                               default date command barfs on the untransformed
+#                               date format, no indication is shown. Store the
+#                               error output from the Perl invocation and show
+#                               it in case of an eventual date error.
 #	005	23-Jun-2012	Allow interpretation of "next Friday in next
 #				month".
 #       004     18-Apr-2012     ENH: Apply preprocessing of shortcuts not just
@@ -55,16 +64,23 @@ done
 #   2012-04-13_141147
 [ "$date" ] || exec date "${allargs[@]}"
 
+parseError=
 # The Perl Date::Manip library understands many human date specifications that
 # /usr/bin/date does not.
 parseDate()
 {
-perl -e '
+    if ! parsedDate=$(perl -e '
 use strict;
 use Date::Manip;
 
 print UnixDate($ARGV[0], "'"$1"'");
-' "$2" 2>/dev/null
+' "$2" 2>&1); then
+        # Without Date::Manip support, we'll just fall back to the normal date
+        # specifications, but store the error output so it can be shown should
+        # the default date command barf on the untransformed date format.
+        parseError=$parsedDate
+        parsedDate=$2
+    fi
 }
 
 
@@ -90,10 +106,10 @@ done
 # Date::Manip understands "next Friday in July", but not "next Friday in next
 # month".
 case $preprocDate in
-    *\ in\ *month*) preprocDate="${preprocDate% in *} in $(parseDate '%B' "${preprocDate##* in }")";;
-    *\ in\ *year*)  preprocDate="${preprocDate% in *} in $(parseDate '%Y' "${preprocDate##* in }")";;
+    *\ in\ *month*) parseDate '%B' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
+    *\ in\ *year*)  parseDate '%Y' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
 esac
 
-parsedDate=$(parseDate '%Y-%m-%d %H:%M:%S' "$preprocDate")
-[ "$parsedDate" ] || parsedDate=$preprocDate
-exec date --date "$parsedDate" "${allargs[@]}"
+parseDate '%Y-%m-%d %H:%M:%S' "$preprocDate"
+unset -f date # The original date might have been overridden with this extended version; avoid an infinite recursion by unsetting any function wrapper.
+date --date "$parsedDate" "${allargs[@]}" || printf >&2 '%s\n' "$parseError"
