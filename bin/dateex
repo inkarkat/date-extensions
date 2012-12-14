@@ -112,4 +112,8 @@ esac
 
 parseDate '%Y-%m-%d %H:%M:%S' "$preprocDate"
 unset -f date # The original date might have been overridden with this extended version; avoid an infinite recursion by unsetting any function wrapper.
-date --date "$parsedDate" "${allargs[@]}" || printf >&2 '%s\n' "$parseError"
+date --date "$parsedDate" "${allargs[@]}" || {
+    exitStatus=$?
+        printf >&2 '%s\n' "$parseError"
+    exit $exitStatus
+}
