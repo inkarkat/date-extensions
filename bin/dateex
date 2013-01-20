@@ -16,9 +16,13 @@
 #
 # REMARKS:
 #
-# FILE_SCCS = "@(#)dateex       006     (19-Nov-2012)   tools";
+# FILE_SCCS = "@(#)dateex       007     (15-Dec-2012)   tools";
 #
 # REVISION      DATE            REMARKS
+#       007	15-Dec-2012	BUG: When preprocessing "next month", must add
+#                               the resulting year; otherwise crossing of the
+#                               year end won't be considered and a past month in
+#                               the current year will be used.
 #       006	19-Nov-2012	FIX: When Date::Manip isn't available, the "in
 #                               * month / year" preprocessing never works. Move
 #                               the defaulting to the original date into the
@@ -106,8 +110,8 @@ done
 # Date::Manip understands "next Friday in July", but not "next Friday in next
 # month".
 case $preprocDate in
-    *\ in\ *month*) parseDate '%B' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
-    *\ in\ *year*)  parseDate '%Y' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
+    *\ in\ *month*) parseDate '%B %Y' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
+    *\ in\ *year*)  parseDate    '%Y' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
 esac
 
 parseDate '%Y-%m-%d %H:%M:%S' "$preprocDate"
