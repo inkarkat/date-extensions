@@ -16,9 +16,14 @@
 #
 # REMARKS:
 #
-# FILE_SCCS = "@(#)dateex       008     (21-Jan-2013)   tools";
+# FILE_SCCS = "@(#)dateex       009     (05-Feb-2016)   tools";
 #
 # REVISION      DATE            REMARKS
+#       009	05-Feb-2016	ENH: Also handle "date OR date [OR date]" by
+#                               splitting into individual dates, parsing each,
+#                               and then choosing the one closest to now.
+#                               Refactoring: Extract convertDate() and
+#                               transformDate().
 #       008     21-Jan-2013     BUG: When Date::Manip does not understand the
 #                               passed date (e.g. "@hp" or "foobar"), it returns
 #                               an empty string and status 0, causing the
@@ -101,12 +106,14 @@ print UnixDate($ARGV[0], "'"$1"'");
     fi
 }
 
+unset -f date # The original date might have been overridden with this extended version; avoid an infinite recursion by unsetting any function wrapper.
+convertDate()
+{
+    date --date "$@"
+}
 
 transformDate()
 {
-    local date=$1
-    shift
-
     # Allow some additional shortcuts that are quite handy.
     # Since we transform into the common format, this does not depend on the Perl
     # processing, so we do it in the shell wrapper.
@@ -134,12 +141,42 @@ transformDate()
     esac
 
     parseDate '%Y-%m-%d %H:%M:%S' "$preprocDate"
-    unset -f date # The original date might have been overridden with this extended version; avoid an infinite recursion by unsetting any function wrapper.
-    date --date "$parsedDate" "$@" || {
+    convertDate "$parsedDate" "$@" || {
         exitStatus=$?
             printf >&2 '%s\n' "$parseError"
         return $exitStatus
     }
 }
 
-transformDate "$date" "${allargs[@]}"
+handleDateAlternatives()
+{
+    local IFS=$'\n'
+    typeset -a dates=(${date// or /$'\n'})
+    typeset -a times
+    for date in "${dates[@]}"
+    do
+        times+=($(transformDate '+%s')) || return $?
+    done
+#****D echo "**** ${times[*]}"
+
+    # Select time nearest to now.
+    now=$(date +%s)
+    nearest=2147483647
+    nearestDiff=$nearest
+    for time in "${times[@]}"
+    do
+        ((diff = time - now))
+        if [ ${diff#-} -lt ${nearestDiff#-} ]; then
+            nearest=$time
+            ((nearestDiff = nearest - now))
+        fi
+    done
+#****D echo "**** $nearest"
+
+    date="@${nearest}"  # @{number} is date's notation for Unix epoch.
+}
+
+case "$date" in
+    *\ or\ *)   handleDateAlternatives && convertDate "$date" "${allargs[@]}";;
+    *)          transformDate "${allargs[@]}";;
+esac
