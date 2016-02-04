@@ -102,36 +102,44 @@ print UnixDate($ARGV[0], "'"$1"'");
 }
 
 
-# Allow some additional shortcuts that are quite handy.
-# Since we transform into the common format, this does not depend on the Perl
-# processing, so we do it in the shell wrapper.
-preprocDate=
-for word in $date
-do
-    case $word in
-        ?(+)+([0-9])d)  word="${word//[^0-9]/} days";;
-        ?(+)+([0-9])w)  word="${word//[^0-9]/} weeks";;
-        ?(+)+([0-9])m)  word="${word//[^0-9]/} months";;
-        ?(+)+([0-9])y)  word="${word//[^0-9]/} years";;
-        -+([0-9])d)     word="${word//[^0-9]/} days ago";;
-        -+([0-9])w)     word="${word//[^0-9]/} weeks ago";;
-        -+([0-9])m)     word="${word//[^0-9]/} months ago";;
-        -+([0-9])y)     word="${word//[^0-9]/} years ago";;
+transformDate()
+{
+    local date=$1
+    shift
+
+    # Allow some additional shortcuts that are quite handy.
+    # Since we transform into the common format, this does not depend on the Perl
+    # processing, so we do it in the shell wrapper.
+    preprocDate=
+    for word in $date
+    do
+        case $word in
+            ?(+)+([0-9])d)  word="${word//[^0-9]/} days";;
+            ?(+)+([0-9])w)  word="${word//[^0-9]/} weeks";;
+            ?(+)+([0-9])m)  word="${word//[^0-9]/} months";;
+            ?(+)+([0-9])y)  word="${word//[^0-9]/} years";;
+            -+([0-9])d)     word="${word//[^0-9]/} days ago";;
+            -+([0-9])w)     word="${word//[^0-9]/} weeks ago";;
+            -+([0-9])m)     word="${word//[^0-9]/} months ago";;
+            -+([0-9])y)     word="${word//[^0-9]/} years ago";;
+        esac
+        preprocDate=${preprocDate}${preprocDate:+ }${word}
+    done
+
+    # Date::Manip understands "next Friday in July", but not "next Friday in next
+    # month".
+    case $preprocDate in
+        *\ in\ *month*) parseDate '%B %Y' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
+        *\ in\ *year*)  parseDate    '%Y' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
     esac
-    preprocDate=${preprocDate}${preprocDate:+ }${word}
-done
 
-# Date::Manip understands "next Friday in July", but not "next Friday in next
-# month".
-case $preprocDate in
-    *\ in\ *month*) parseDate '%B %Y' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
-    *\ in\ *year*)  parseDate    '%Y' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
-esac
-
-parseDate '%Y-%m-%d %H:%M:%S' "$preprocDate"
-unset -f date # The original date might have been overridden with this extended version; avoid an infinite recursion by unsetting any function wrapper.
-date --date "$parsedDate" "${allargs[@]}" || {
-    exitStatus=$?
-        printf >&2 '%s\n' "$parseError"
-    exit $exitStatus
+    parseDate '%Y-%m-%d %H:%M:%S' "$preprocDate"
+    unset -f date # The original date might have been overridden with this extended version; avoid an infinite recursion by unsetting any function wrapper.
+    date --date "$parsedDate" "$@" || {
+        exitStatus=$?
+            printf >&2 '%s\n' "$parseError"
+        return $exitStatus
+    }
 }
+
+transformDate "$date" "${allargs[@]}"
