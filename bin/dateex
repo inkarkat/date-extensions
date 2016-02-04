@@ -16,14 +16,20 @@
 #
 # REMARKS:
 #
-# FILE_SCCS = "@(#)dateex       007     (15-Dec-2012)   tools";
+# FILE_SCCS = "@(#)dateex       008     (21-Jan-2013)   tools";
 #
 # REVISION      DATE            REMARKS
-#       007	15-Dec-2012	BUG: When preprocessing "next month", must add
+#       008     21-Jan-2013     BUG: When Date::Manip does not understand the
+#                               passed date (e.g. "@hp" or "foobar"), it returns
+#                               an empty string and status 0, causing the
+#                               fallback Unix date command to use the current
+#                               date instead of issuing an error. Need to revert
+#                               to the passed date.
+#       007     15-Dec-2012     BUG: When preprocessing "next month", must add
 #                               the resulting year; otherwise crossing of the
 #                               year end won't be considered and a past month in
 #                               the current year will be used.
-#       006	19-Nov-2012	FIX: When Date::Manip isn't available, the "in
+#       006     19-Nov-2012     FIX: When Date::Manip isn't available, the "in
 #                               * month / year" preprocessing never works. Move
 #                               the defaulting to the original date into the
 #                               parseDate() function.
@@ -32,8 +38,8 @@
 #                               date format, no indication is shown. Store the
 #                               error output from the Perl invocation and show
 #                               it in case of an eventual date error.
-#	005	23-Jun-2012	Allow interpretation of "next Friday in next
-#				month".
+#       005     23-Jun-2012     Allow interpretation of "next Friday in next
+#                               month".
 #       004     18-Apr-2012     ENH: Apply preprocessing of shortcuts not just
 #                               on the whole date, but on individual words, to
 #                               allow shortcuts in timespans "2012-04-18 -2d".
@@ -73,12 +79,20 @@ parseError=
 # /usr/bin/date does not.
 parseDate()
 {
-    if ! parsedDate=$(perl -e '
+    if parsedDate=$(perl -e '
 use strict;
 use Date::Manip;
 
 print UnixDate($ARGV[0], "'"$1"'");
 ' "$2" 2>&1); then
+        if [ -z "$parsedDate" ]; then
+            # When Date::Manip does not understand the passed date, it returns
+            # an empty string. Though unlikely, let's revert to the passed date
+            # and let the Unix date command have another try (and create the
+            # proper error message).
+            parsedDate=$2
+        fi
+    else
         # Without Date::Manip support, we'll just fall back to the normal date
         # specifications, but store the error output so it can be shown should
         # the default date command barf on the untransformed date format.
