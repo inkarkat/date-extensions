@@ -12,7 +12,7 @@ Calculate difference between two DATEs or TIMEs / the passed DATE or TIME and
 now, and print it in flexible units depending on the magnitude of the
 difference.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-o|--output smallest-unit|best-unit|largest-unit] DATE|TIME [DATE|TIME] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-o|--output smallest-unit|best-unit|largest-unit|textform] DATE|TIME [DATE|TIME] [-?|-h|--help]'
 }
 outputFormat=
 while [ $# -ne 0 ]
@@ -76,6 +76,9 @@ case "$outputFormat" in
 		    best="${diffInUnits[-1]}"
 		    [ "${best:0:1}" = '0' ] && best="${diffInUnits[-2]}"
 		    printf '%s\n' "$best"
+		    ;;
+    textform)	    alternatives=("${diffInUnits[@]}" "$(joinBy ' = ' "${diffInUnits[@]}")")
+		    joinBy --prefix '[' --suffix ']' '|' "${alternatives[@]}"
 		    ;;
     *)		    printf >&2 'ERROR: Invalid output format: %s\n' "$outputFormat"; exit 2;;
 esac
