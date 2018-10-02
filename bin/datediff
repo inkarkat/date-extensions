@@ -12,12 +12,14 @@ Calculate difference between two DATEs or TIMEs / the passed DATE or TIME and
 now, and print it in flexible units depending on the magnitude of the
 difference.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" 'DATE|TIME [DATE|TIME] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-o|--output smallest-unit|best-unit|largest-unit] DATE|TIME [DATE|TIME] [-?|-h|--help]'
 }
+outputFormat=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--output|-o)	shift; outputFormat="$1"; shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -66,4 +68,14 @@ calculateUnit "$daysDiff"    month 30
 calculateUnit "$daysDiff"    year 365
 calculateUnit "$daysDiff"    generation 9131
 
-joinBy ' = ' "${diffInUnits[@]}"
+case "$outputFormat" in
+    '')		    joinBy ' = ' "${diffInUnits[@]}";;
+    smallest-unit)  printf '%s\n' "${diffInUnits[0]}";;
+    largest-unit)   printf '%s\n' "${diffInUnits[-1]}";;
+    best-unit)	    # Choose the largest one that is not just a fraction; i.e. does not start with 0.
+		    best="${diffInUnits[-1]}"
+		    [ "${best:0:1}" = '0' ] && best="${diffInUnits[-2]}"
+		    printf '%s\n' "$best"
+		    ;;
+    *)		    printf >&2 'ERROR: Invalid output format: %s\n' "$outputFormat"; exit 2;;
+esac
