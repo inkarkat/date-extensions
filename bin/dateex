@@ -24,6 +24,8 @@
 #                               and then choosing the one closest to now.
 #                               Refactoring: Extract convertDate() and
 #                               transformDate().
+#                               ENH: Also support "this month" (and, less
+#                               useful, "this year").
 #       008     21-Jan-2013     BUG: When Date::Manip does not understand the
 #                               passed date (e.g. "@hp" or "foobar"), it returns
 #                               an empty string and status 0, causing the
@@ -136,6 +138,9 @@ transformDate()
     # Date::Manip understands "next Friday in July", but not "next Friday in next
     # month".
     case $preprocDate in
+        *\ in\ @(this|current)\ month*) parseDate '%B %Y' "now"; preprocDate="${preprocDate% in *} in $parsedDate";;
+        *\ in\ @(this|current)\ year*)  parseDate    '%Y' "now"; preprocDate="${preprocDate% in *} in $parsedDate";;
+
         *\ in\ *month*) parseDate '%B %Y' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
         *\ in\ *year*)  parseDate    '%Y' "${preprocDate##* in }"; preprocDate="${preprocDate% in *} in $parsedDate";;
     esac
