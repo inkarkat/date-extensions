@@ -1,24 +1,25 @@
 #!/bin/bash
 
-# datediff		Calculate difference between two dates / the passed date
-#			and now.
+# datediff		Calculate difference between two dates or timestamps /
+#			the passed date or timestamp and now.
 # Source: http://unix.stackexchange.com/a/24636/18876
 # See also: dateutils.ddiff
 
 set -u
-DATE=dateex; type -t "$DATE" >/dev/null || DATE=date
+DATE=dateex; type -t "$DATE" >/dev/null || DATE=date	# Use extended date parsing via dateex if available.
 
 typeset d1; d1=$("$DATE" -d "$1" +%s) || exit 1
 typeset d2; d2=$("$DATE" -d "${2:-}" +%s) || exit 1
-typeset diff=$(( (((d1-d2) > 0 ? (d1-d2) : (d2-d1)) + 43200) / 86400 ))
+typeset secondsDiff=$(( (d1-d2) > 0 ? (d1-d2) : (d2-d1)))
+typeset daysDiff=$(( (secondsDiff + 43200) / 86400 ))
 
 typeset -a diffInUnits=()
 addDiffUnit()
 {
     local diff=$1; shift
-    [ "$diff" = 0 ] && return
+    [ "$diff" = 0 ] && return	# Skip values that are zero.
     local flooredDiff="${diff%.*}"
-    [ ${#flooredDiff} -gt 4 ] && return
+    [ ${#flooredDiff} -gt 4 ] && return	# Skip values that are too large (>9999).
 
     local unit=$1; shift
     local unitPlural='s'
@@ -28,16 +29,20 @@ addDiffUnit()
 }
 calculateUnit()
 {
-    unit=$1; shift
-    divisor=$1; shift
+    local diff=$1; shift
+    local unit=$1; shift
+    local divisor=$1; shift
     local unitDiff="$(divround $((100 * diff / divisor)))"
     addDiffUnit "$unitDiff" "$unit"
 }
 
-addDiffUnit "$diff" day
-calculateUnit week 7
-calculateUnit month 30
-calculateUnit year 365
-calculateUnit generation 9131
+addDiffUnit   "$secondsDiff" second
+calculateUnit "$secondsDiff" minute 60
+calculateUnit "$secondsDiff" hour 3600
+calculateUnit "$secondsDiff" day 86400
+calculateUnit "$daysDiff"    week 7
+calculateUnit "$daysDiff"    month 30
+calculateUnit "$daysDiff"    year 365
+calculateUnit "$daysDiff"    generation 9131
 
 joinBy ' = ' "${diffInUnits[@]}"
