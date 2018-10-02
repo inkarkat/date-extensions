@@ -1,12 +1,33 @@
 #!/bin/bash
-
-# datediff		Calculate difference between two dates or timestamps /
-#			the passed date or timestamp and now.
 # Source: http://unix.stackexchange.com/a/24636/18876
 # See also: dateutils.ddiff
 
 set -u
 DATE=dateex; type -t "$DATE" >/dev/null || DATE=date	# Use extended date parsing via dateex if available.
+
+printUsage()
+{
+    cat <<HELPTEXT
+Calculate difference between two DATEs or TIMEs / the passed DATE or TIME and
+now, and print it in flexible units depending on the magnitude of the
+difference.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" 'DATE|TIME [DATE|TIME] [-?|-h|--help]'
+}
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -lt 1 -o $# -gt 2 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
 
 typeset d1; d1=$("$DATE" -d "$1" +%s) || exit 1
 typeset d2; d2=$("$DATE" -d "${2:-}" +%s) || exit 1
