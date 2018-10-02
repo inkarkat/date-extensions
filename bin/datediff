@@ -1,12 +1,14 @@
 #!/bin/bash
+
 # datediff		Calculate difference between two dates / the passed date
 #			and now.
 # Source: http://unix.stackexchange.com/a/24636/18876
 # See also: dateutils.ddiff
 
 set -u
+DATE=dateex; type -t "$DATE" >/dev/null || DATE=date
 
-typeset d1; d1=$(date -d "$1" +%s) || exit 1
-typeset d2; d2=$(date -d "${2:-}" +%s) || exit 1
+typeset d1; d1=$("$DATE" -d "$1" +%s) || exit 1
+typeset d2; d2=$("$DATE" -d "${2:-}" +%s) || exit 1
 typeset diff=$(( (((d1-d2) > 0 ? (d1-d2) : (d2-d1)) + 43200) / 86400 ))
 echo "$diff days = $(divround $((100 * diff / 7))) weeks = $(divround $((100 * diff / 30))) months = $(divround $((100 * diff / 365))) years"
