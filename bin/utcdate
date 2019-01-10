@@ -1,0 +1,25 @@
+#!/bin/bash -e
+
+printUsage()
+{
+    cat <<HELPTEXT
+Convert the current / passed time as Coordinated Universal Time (UTC).
+(The latter cannot be done with a simple date invocation, because the --utc
+argument affects the interpretation of both input and output dates.)
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[OPTION]... [+FORMAT] [-d|--date[=] STRING] [-?|-h|--help]'
+}
+typeset -a nowArgs=()
+typeset -a dateArgs=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--date|-d)	nowArgs+=("$1" "$2"); shift; shift;;
+	--date=*)	nowArgs+=("$1"); shift;;
+	*)		dateArgs+=("$1"); shift;;
+    esac
+done
+
+epoch="$(date +%s "${nowArgs[@]}")"
+date --utc --date "@$epoch" "${dateArgs[@]}"
