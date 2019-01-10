@@ -1,0 +1,32 @@
+#!/bin/bash -e
+
+printUsage()
+{
+    cat <<HELPTEXT
+Convert the passed Coordinated Universal Time (UTC) to the local timezone.
+(This cannot be done with a simple date invocation, because the --utc argument
+affects the interpretation of both input and output dates.)
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[OPTION]... [+FORMAT] [-d|--date[=] STRING] [-f|--file[=] DATEFILE] [-?|-h|--help]'
+}
+typeset -a nowArgs=()
+typeset -a dateArgs=()
+typeset fileArg=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--date|-d)	nowArgs+=("$1" "$2"); shift; shift;;
+	--date=*)	nowArgs+=("$1"); shift;;
+	--file|-f)	shift; fileArg="$1"; shift;;
+	*)		dateArgs+=("$1"); shift;;
+    esac
+done
+
+if [ "$fileArg" ]; then
+    # FIXME: Process substitution eats failure exit status.
+    date --file <(date --utc --file "$fileArg" "${nowArgs[@]}" +%s | sed -e 's/^\([[:space:]]\)*\([^[:space:]]\)/\1@\2/') "${dateArgs[@]}"
+else
+    epoch="$(date --utc "${nowArgs[@]}" +%s)"
+    date --date "@$epoch" "${dateArgs[@]}"
+fi
