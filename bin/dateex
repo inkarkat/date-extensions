@@ -135,8 +135,8 @@ transformDate()
         preprocDate=${preprocDate}${preprocDate:+ }${word}
     done
 
-    # Date::Manip understands "next Friday in July", but not "next Friday in next
-    # month".
+    # Date::Manip understands "first Friday in July", but not "first Friday in
+    # next month".
     case $preprocDate in
         *\ in\ @(this|current)\ month*) parseDate '%B %Y' "now"; preprocDate="${preprocDate% in *} in $parsedDate";;
         *\ in\ @(this|current)\ year*)  parseDate    '%Y' "now"; preprocDate="${preprocDate% in *} in $parsedDate";;
