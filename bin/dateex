@@ -86,7 +86,11 @@ parseError=
 # /usr/bin/date does not.
 parseDate()
 {
-    if parsedDate=$(perl -e '
+    # XXX: Perl seems to greedily read from stdin (if we're invoked within a
+    # pipeline), though it's shouldn't consider that at all. Redirect stdin from
+    # /dev/null to keep any outer pipeline intact and prevent it from being
+    # emptied.
+    if parsedDate=$(</dev/null perl -e '
 use strict;
 use Date::Manip;
 
