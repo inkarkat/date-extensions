@@ -5,7 +5,7 @@
 set -u
 DATE=dateex; type -t "$DATE" >/dev/null || DATE=date	# Use extended date parsing via dateex if available.
 
-readonly availableOutputFormats='smallest-unit|best-unit|largest-unit|textform'
+readonly availableOutputFormats='whole-units|smallest-unit|best-unit|largest-unit|textform'
 printUsage()
 {
     cat <<HELPTEXT
@@ -93,11 +93,23 @@ calculateUnit "$daysDiff"    generation 9131
 
 case "$outputFormat" in
     '')		    joinBy ' = ' "${diffInUnits[@]}";;
+    whole-units)    # Choose all units that are not just a fraction; i.e. do not start with 0.
+		    typeset -a wholeUnits=()
+		    for unit in "${diffInUnits[@]}"
+		    do
+			[ "${unit:0:1}" = 0 ] || wholeUnits+=("$unit")
+		    done
+		    if [ ${#wholeUnits[@]} -eq 0 ]; then
+			printf '%s\n' "${diffInUnits[-1]}"
+		    else
+			joinBy ' = ' "${wholeUnits[@]}"
+		    fi
+		    ;;
     smallest-unit)  printf '%s\n' "${diffInUnits[0]}";;
     largest-unit)   printf '%s\n' "${diffInUnits[-1]}";;
     best-unit)	    # Choose the largest one that is not just a fraction; i.e. does not start with 0.
 		    best="${diffInUnits[-1]}"
-		    [ "${best:0:1}" = '0' ] && best="${diffInUnits[-2]}"
+		    [ "${best:0:1}" = 0 ] && best="${diffInUnits[-2]}"
 		    printf '%s\n' "$best"
 		    ;;
     textform)	    alternatives=("${diffInUnits[@]}" "$(joinBy ' = ' "${diffInUnits[@]}")")
