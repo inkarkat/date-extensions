@@ -61,12 +61,13 @@ fi
 typeset -a diffInUnits=()
 addDiffUnit()
 {
-    local diff=$1; shift
-    [ "$diff" = 0 ] && return	# Skip values that are zero.
+    local diff="$1"; shift
+    local unit="$1"; shift
+
+    [ "$diff" = 0 -a "$unit" != second ] && return	# Skip values that are zero, but keep at least "0 seconds" as the pathological corner case.
     local flooredDiff="${diff%.*}"
     [ ${#flooredDiff} -gt 4 ] && return	# Skip values that are too large (>9999).
 
-    local unit=$1; shift
     local unitPlural='s'
     [ "$diff" = '1' ] && unitPlural=
 
