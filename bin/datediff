@@ -12,29 +12,50 @@ Calculate difference between two DATEs or TIMEs / the passed DATE or TIME and
 now, and print it in flexible units depending on the magnitude of the
 difference.
 HELPTEXT
+    echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-o|--output smallest-unit|best-unit|largest-unit|textform] DATE|TIME [DATE|TIME] [-?|-h|--help]'
+    echo
+    cat <<HELPTEXT
+Print the passed difference in seconds or days in flexible units depending on
+the magnitude of the difference.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-o|--output smallest-unit|best-unit|largest-unit|textform] -s|--seconds|-d|--days NUM [-?|-h|--help]'
 }
+
+hasDifference=
+secondsDiff=0
+daysDiff=
 outputFormat=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 	--output|-o)	shift; outputFormat="$1"; shift;;
-	--)		shift; break;;
+	--seconds|-s)	shift; secondsDiff="${1:?}"; shift; hasDifference=t;;
+	--days|-d)	shift; daysDiff="${1:?}"; shift; hasDifference=t;;
+	--)		[ "$hasDifference" ] || shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
 done
-if [ $# -lt 1 -o $# -gt 2 ]; then
-    printUsage "$0" >&2
-    exit 2
+
+if [ "$hasDifference" ]; then
+    if [ $# -gt 0 ]; then
+	printUsage "$0" >&2
+	exit 2
+    fi
+else
+    if [ $# -lt 1 -o $# -gt 2 ]; then
+	printUsage "$0" >&2
+	exit 2
+    fi
+
+    typeset d1; d1=$("$DATE" -d "$1" +%s) || exit 1
+    typeset d2; d2=$("$DATE" -d "${2:-}" +%s) || exit 1
+    secondsDiff=$(( (d1-d2) > 0 ? (d1-d2) : (d2-d1)))
 fi
-
-
-typeset d1; d1=$("$DATE" -d "$1" +%s) || exit 1
-typeset d2; d2=$("$DATE" -d "${2:-}" +%s) || exit 1
-typeset secondsDiff=$(( (d1-d2) > 0 ? (d1-d2) : (d2-d1)))
-typeset daysDiff=$(( (secondsDiff + 43200) / 86400 ))
+[ -n "$daysDiff" ] || daysDiff=$(( (secondsDiff + 43200) / 86400 ))
 
 typeset -a diffInUnits=()
 addDiffUnit()
