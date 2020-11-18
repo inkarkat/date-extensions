@@ -5,6 +5,7 @@
 set -u
 DATE=dateex; type -t "$DATE" >/dev/null || DATE=date	# Use extended date parsing via dateex if available.
 
+readonly availableOutputFormats='smallest-unit|best-unit|largest-unit|textform'
 printUsage()
 {
     cat <<HELPTEXT
@@ -13,14 +14,14 @@ now, and print it in flexible units depending on the magnitude of the
 difference.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-o|--output smallest-unit|best-unit|largest-unit|textform] DATE|TIME [DATE|TIME] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-o|--output ${availableOutputFormats}] DATE|TIME [DATE|TIME] [-?|-h|--help]"
     echo
     cat <<HELPTEXT
 Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-o|--output smallest-unit|best-unit|largest-unit|textform] -s|--seconds|-d|--days NUM [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-o|--output ${availableOutputFormats}] -s|--seconds|-d|--days NUM [-?|-h|--help]"
 }
 
 hasDifference=
