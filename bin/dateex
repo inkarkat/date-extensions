@@ -2,7 +2,7 @@
 ###############################################################################
 ##
 # FILE:         dateex
-# PRODUCT:      tools
+# PRODUCT:      date-extensions
 # AUTHOR:       /^--
 # DATE CREATED: 05-Jan-2012
 #
@@ -16,45 +16,7 @@
 #
 # REMARKS:
 #
-# FILE_SCCS = "@(#)dateex       009     (05-Feb-2016)   tools";
-#
-# REVISION      DATE            REMARKS
-#       009	05-Feb-2016	ENH: Also handle "date OR date [OR date]" by
-#                               splitting into individual dates, parsing each,
-#                               and then choosing the one closest to now.
-#                               Refactoring: Extract convertDate() and
-#                               transformDate().
-#                               ENH: Also support "this month" (and, less
-#                               useful, "this year").
-#       008     21-Jan-2013     BUG: When Date::Manip does not understand the
-#                               passed date (e.g. "@hp" or "foobar"), it returns
-#                               an empty string and status 0, causing the
-#                               fallback Unix date command to use the current
-#                               date instead of issuing an error. Need to revert
-#                               to the passed date.
-#       007     15-Dec-2012     BUG: When preprocessing "next month", must add
-#                               the resulting year; otherwise crossing of the
-#                               year end won't be considered and a past month in
-#                               the current year will be used.
-#       006     19-Nov-2012     FIX: When Date::Manip isn't available, the "in
-#                               * month / year" preprocessing never works. Move
-#                               the defaulting to the original date into the
-#                               parseDate() function.
-#                               When Date::Manip isn't available and the
-#                               default date command barfs on the untransformed
-#                               date format, no indication is shown. Store the
-#                               error output from the Perl invocation and show
-#                               it in case of an eventual date error.
-#       005     23-Jun-2012     Allow interpretation of "next Friday in next
-#                               month".
-#       004     18-Apr-2012     ENH: Apply preprocessing of shortcuts not just
-#                               on the whole date, but on individual words, to
-#                               allow shortcuts in timespans "2012-04-18 -2d".
-#                               This is useful in todo.sh did 42 after 2d.
-#       003     13-Apr-2012     FIX: Short-circuit if no date was passed, i.e.
-#                               the current date should be used.
-#       002     22-Feb-2012     ENH: Also understand shortcuts [+-]N[dwmy].
-#       001     05-Jan-2012     file creation
+# @(#)dateex       $Id$     (05-Feb-2016)   date-extensions
 ###############################################################################
 
 shopt -qs extglob
@@ -166,7 +128,6 @@ handleDateAlternatives()
     do
         times+=($(transformDate '+%s')) || return $?
     done
-#****D echo "**** ${times[*]}"
 
     # Select time nearest to now.
     now=$(date +%s)
@@ -180,7 +141,6 @@ handleDateAlternatives()
             ((nearestDiff = nearest - now))
         fi
     done
-#****D echo "**** $nearest"
 
     date="@${nearest}"  # @{number} is date's notation for Unix epoch.
 }
