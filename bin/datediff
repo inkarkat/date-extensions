@@ -5,7 +5,7 @@
 set -u
 DATE=dateex; type -t "$DATE" >/dev/null || DATE=date	# Use extended date parsing via dateex if available.
 
-readonly availableOutputFormats='whole-units|smallest-unit|best-unit|largest-unit|textform'
+readonly availableOutputFormats='seconds|days|whole-units|smallest-unit|best-unit|largest-unit|textform'
 printUsage()
 {
     cat <<HELPTEXT
@@ -93,6 +93,8 @@ calculateUnit "$daysDiff"    generation 9131
 
 case "$outputFormat" in
     '')		    joinBy ' = ' "${diffInUnits[@]}";;
+    seconds)	    printf '%s\n' "$secondsDiff";;
+    days)	    printf '%s\n' "$daysDiff";;
     whole-units)    # Choose all units that are not just a fraction; i.e. do not start with 0.
 		    typeset -a wholeUnits=()
 		    for unit in "${diffInUnits[@]}"
