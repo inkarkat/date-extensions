@@ -1,0 +1,53 @@
+#!/bin/bash
+shopt -qs extglob
+
+: ${BEDTIME_HOUR:=3}
+
+printUsage()
+{
+    cat <<HELPTEXT
+Show the current / passed time in the given FORMAT, considering that human
+bedtime can be after midnight (assuming that people do sleep at 0${BEDTIME_HOUR}:00),
+so the date change will only happen then, not at midnight.
+Note: For FORMAT, avoid time components and only use date components, as the
+time may be off if the adaptation takes place.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[DATE-OPTION ...] [+FORMAT] [-?|-h|--help]'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+
+typeset -a dateFormatArgs=()
+typeset -a dateDateArgs=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)			shift; printUsage "$0"; exit 0;;
+	--set|-s|--file|-f)		printf >&2 'date %s is not supported here.' "$1"
+					exit 2
+					;;
+	-+([Ru]))			dateFormatArgs+=("$1"); shift;;
+	--@(rfc-2822|utc|universal))	dateFormatArgs+=("$1"); shift;;
+	-[dr])				dateDateArgs+=("$1" "$2"); shift; shift;;
+	--@(date|reference)=*)		dateDateArgs+=("$1"); shift;;
+	--@(date|reference))		dateDateArgs+=("$1" "$2"); shift; shift;;
+	--)				dateFormatArgs+=("$1"); shift; break;;
+	*)				break;;
+    esac
+done
+
+currentHour=$(date "${dateDateArgs[@]}" +%H) || exit $?
+if [ $currentHour -ge $BEDTIME_HOUR ]; then
+    # Same day, return normal date.
+    exec date "${dateDateArgs[@]}" "${dateFormatArgs[@]}" "$@"
+elif [ ${#dateDateArgs[@]} -eq 0 ]; then
+    # Today after midnight, but before bedtime. Return yesterday's date.
+    exec date --date yesterday "${dateFormatArgs[@]}" "$@"
+else
+    # Another day after midnight, but before bedtime. Obtain the epoch and
+    # subtract 24 hours to get the previous day.
+    epoch=$(date "${dateDateArgs[@]}" +%s) || exit $?
+    exec date --date "@$((epoch - 86400))" "${dateFormatArgs[@]}" "$@"
+fi
