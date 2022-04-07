@@ -98,7 +98,7 @@ transformDate()
             -+([0-9])m)     word="${word//[^0-9]/} months ago";;
             -+([0-9])y)     word="${word//[^0-9]/} years ago";;
         esac
-        preprocDate="${preprocDate}${preprocDate:+ }${word}"
+        preprocDate+="${preprocDate:+ }${word}"
     done
 
     # Date::Manip understands "first Friday in July", but not "first Friday in
