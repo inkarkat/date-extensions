@@ -1,0 +1,63 @@
+#!/bin/bash
+shopt -qs extglob
+
+set -u
+DATE=dateex; type -t "$DATE" >/dev/null || DATE=date	# Use extended date parsing via dateex if available.
+
+printUsage()
+{
+    cat <<HELPTEXT
+Add the passed duration to the current time / the passed DATE or TIME, and print
+it [according to FORMAT].
+SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
+for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-f|--format FORMAT|-I[FMT]|--iso-8601[=FMT]|-R|--rfc-email|--rfc-3339=FMT] [-t|--to DATE|TIME] [+-]"[Ww ][Dd |D-][HH:]MM:SS"|[+-]NUMBER[SUFFIX] [...] [-?|-h|--help]'
+}
+
+baseDate=
+typeset -a format=()
+typeset -a durations=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--format|-f)	shift; format=("+${1:?}"); shift;;
+	--@(iso-8601|--rfc-3339)@(=*)|-I*)
+			format=("$1"); shift;;
+	--rfc-email|-R)
+			format=("$1"); shift;;
+	--to|-t)	shift; baseDate="$("$DATE" -d "${1:?}" +%s)" || exit 2; shift;;
+	?([+-])+([0-9])?(s))	durations+=("${1%s}"); shift;;
+	?([+-])+([0-9])m)	durations+=($((${1%m} * 60))); shift;;
+	?([+-])+([0-9])h)	durations+=($((${1%h} * 3600))); shift;;
+	?([+-])+([0-9])d)	durations+=($((${1%d} * 86400))); shift;;
+	?([+-])+([0-9])w)	durations+=($((${1%w} * 86400 * 7))); shift;;
+	?([+-])+([0-9])mo)	durations+=($((${1%mo} * 86400 * 30))); shift;;
+	?([+-])+([0-9])y)	durations+=($((${1%y} * 86400 * 365))); shift;;
+	?([+-])+([0-9])g)	durations+=($((${1%g} * 86400 * 9131))); shift;;
+	-*[0-9][0-9]:[0-9][0-9])
+			durations+=("-$(durationToSeconds "${1#-}")") || exit 2; shift;;
+	?(+)*[0-9][0-9]:[0-9][0-9])
+			durations+=("$(durationToSeconds "${1#+}")") || exit 2; shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		{ echo "ERROR: Illegal duration: \"$1\"; must be \"[+-][Ww ][Dd |D-][HH:]MM:SS\" or [+-]NUMBER[SUFFIX]!"; echo; printUsage "$0"; } >&2; exit 2;;
+    esac
+done
+if [ ${#durations[@]} -eq 0 ]; then
+    echo 'ERROR: No duration passed; must be "[+-][Ww ][Dd |D-][HH:]MM:SS" or [+-]NUMBER[SUFFIX]!'
+    echo
+    printUsage "$0"
+    exit 2
+fi >&2
+
+
+: ${baseDate:=$(date +%s)}
+
+for duration in "${durations[@]}"
+do
+    let baseDate+=$duration
+done
+exec date --date="@$baseDate" "${format[@]}"
