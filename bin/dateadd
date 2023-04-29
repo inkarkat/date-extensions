@@ -13,9 +13,10 @@ SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-f|--format FORMAT|-I[FMT]|--iso-8601[=FMT]|-R|--rfc-email|--rfc-3339=FMT] [-t|--to DATE|TIME] [+-]"[Ww ][Dd |D-][HH:]MM:SS"|[+-]NUMBER[SUFFIX] [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-u|--utc|--universal] [-f|--format FORMAT|-I[FMT]|--iso-8601[=FMT]|-R|--rfc-email|--rfc-3339=FMT] [-t|--to DATE|TIME] [+-]"[Ww ][Dd |D-][HH:]MM:SS"|[+-]NUMBER[SUFFIX] [...] [-?|-h|--help]'
 }
 
+typeset -a dateArgs=()
 baseDate=
 typeset -a format=()
 typeset -a durations=()
@@ -23,12 +24,14 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--universal|--utc|-u)
+			dateArgs+=("$1"); shift;;
 	--format|-f)	shift; format=("+${1:?}"); shift;;
 	--@(iso-8601|--rfc-3339)@(=*)|-I*)
 			format=("$1"); shift;;
 	--rfc-email|-R)
 			format=("$1"); shift;;
-	--to|-t)	shift; baseDate="$("$DATE" -d "${1:?}" +%s)" || exit 2; shift;;
+	--to|-t)	shift; baseDate="$("$DATE" --date="${1:?}" +%s)" || exit 2; shift;;
 	?([+-])+([0-9])?(s))	durations+=("${1%s}"); shift;;
 	?([+-])+([0-9])m)	durations+=($((${1%m} * 60))); shift;;
 	?([+-])+([0-9])h)	durations+=($((${1%h} * 3600))); shift;;
@@ -54,10 +57,10 @@ if [ ${#durations[@]} -eq 0 ]; then
 fi >&2
 
 
-: ${baseDate:=$(date +%s)}
+: ${baseDate:=$(date "${dateArgs[@]}" +%s)}
 
 for duration in "${durations[@]}"
 do
     let baseDate+=$duration
 done
-exec date --date="@$baseDate" "${format[@]}"
+exec date "${dateArgs[@]}" --date="@$baseDate" "${format[@]}"
