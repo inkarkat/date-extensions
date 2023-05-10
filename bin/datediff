@@ -2,7 +2,6 @@
 # Source: http://unix.stackexchange.com/a/24636/18876
 # See also: dateutils.ddiff
 
-set -u
 DATE=dateex; type -t "$DATE" >/dev/null || DATE=date	# Use extended date parsing via dateex if available.
 
 readonly availableOutputFormats='seconds|minutes|hours|days|weeks|months|years|generations|whole-units|smallest-unit|best-unit|largest-unit|textform'
