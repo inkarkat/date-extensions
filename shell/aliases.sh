@@ -21,15 +21,20 @@ alias dateiso='date --iso-8601'
 # datetimeiso		ISO-8601 format 2015-05-29T14:46:00+02:00
 alias datetimeiso='date --iso-8601=seconds'
 
-# utcdatetime		UTC ISO-8601 format 2015-05-29T14:46:00+00:00
-alias utcdatetime='utcdate --iso-8601=seconds'
+# utcdatetime		UTC ISO-8601 format 2015-05-29T14:46:00Z
+#			(with Zero / Zulu suffix instead of +00:00)
+utcdatetime()
+{
+    utcdate --iso-8601=seconds "$@" \
+	| sed -e 's/+00:00/Z/'
+}
 
-# datetimeall		local and UTC ISO-8601 format and UTC Unix epoch
+# datetimeall		local and UTC ISO-8601 format and (UTC) Unix epoch
 datetimeall()
 {
     {
 	date --iso-8601=seconds "$@" && \
-	    utcdate --iso-8601=seconds "$@" | sed -e 's/+00:00/ UTC/' && \
+	    utcdatetime "$@" && \
 	    utcdate +@%s "$@"
     } | joinBy - ' / '
 }
