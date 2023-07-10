@@ -120,8 +120,11 @@ case "$outputFormat" in
     smallest-unit)  printf '%s\n' "${diffInUnits[0]}";;
     largest-unit)   printf '%s\n' "${diffInUnits[-1]}";;
     best-unit)	    # Choose the largest one that is not just a fraction; i.e. does not start with 0.
-		    best="${diffInUnits[-1]}"
-		    [ "${best:0:1}" = 0 ] && best="${diffInUnits[-2]}"
+		    for ((i = $((${#diffInUnits[@]} - 1)); i >= 0; i--))
+		    do
+			best="${diffInUnits[i]}"
+			[ "${best:0:1}" = 0 ] || break
+		    done
 		    printf '%s\n' "$best"
 		    ;;
     textform)	    alternatives=("${diffInUnits[@]}" "$(joinBy ' = ' "${diffInUnits[@]}")")
