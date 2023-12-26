@@ -9,7 +9,7 @@
 ###############################################################################
 # CONTENTS:
 #   Extended human date specifications for the "date" command.
-#   Also understands shortcuts [+-]N[dwmy].
+#   Also understands shortcuts [+-]N[smhdw(mo)yg].
 #
 # DEPENDENCIES:
 #   - Perl Date::Manip package.
@@ -89,14 +89,22 @@ transformDate()
     for word in $date
     do
         case $word in
+            ?(+)+([0-9])s)  word="${word//[^0-9]/} seconds";;
+            ?(+)+([0-9])m)  word="${word//[^0-9]/} minutes";;
+            ?(+)+([0-9])h)  word="${word//[^0-9]/} hours";;
             ?(+)+([0-9])d)  word="${word//[^0-9]/} days";;
             ?(+)+([0-9])w)  word="${word//[^0-9]/} weeks";;
-            ?(+)+([0-9])m)  word="${word//[^0-9]/} months";;
+            ?(+)+([0-9])mo) word="${word//[^0-9]/} months";;
             ?(+)+([0-9])y)  word="${word//[^0-9]/} years";;
+            ?(+)+([0-9])g)  word="$((${word//[^0-9]/} * 9131)) days";;
+            -+([0-9])s)     word="${word//[^0-9]/} seconds ago";;
+            -+([0-9])m)     word="${word//[^0-9]/} minutes ago";;
+            -+([0-9])h)     word="${word//[^0-9]/} hours ago";;
             -+([0-9])d)     word="${word//[^0-9]/} days ago";;
             -+([0-9])w)     word="${word//[^0-9]/} weeks ago";;
-            -+([0-9])m)     word="${word//[^0-9]/} months ago";;
+            -+([0-9])mo)    word="${word//[^0-9]/} months ago";;
             -+([0-9])y)     word="${word//[^0-9]/} years ago";;
+            -+([0-9])g)     word="$((${word//[^0-9]/} * 9131)) days ago";;
         esac
         preprocDate+="${preprocDate:+ }${word}"
     done
