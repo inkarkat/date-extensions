@@ -7,24 +7,31 @@
 # DATE CREATED: 05-Jan-2012
 #
 ###############################################################################
-# CONTENTS:
-#   Extended human date specifications for the "date" command.
-#   Also understands shortcuts [+-]N[smhdw(mo)yg].
-#
 # DEPENDENCIES:
 #   - Perl Date::Manip package.
 #
 # REMARKS:
 #
-# @(#)dateex       $Id$     (05-Feb-2016)   date-extensions
+# @(#)dateex       $Id$     (26-Dec-2023)   date-extensions
 ###############################################################################
-
 shopt -qs extglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Extended human date specifications for the "date" command.
+Also understands shortcuts [+-]N[smhdw(mo)yg] (using \$DATEEX_PLAIN_NUMBER_UNIT
+(default: seconds) if no unit it given).
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-d|--date DATE-STRING [DATE-ARGS ...] [-?|-h|--help]'
+}
 
 typeset -a allargs=()
 while [ $# -ne 0 ]
 do
     case "$1" in
+        --help|-h|-\?)  shift; printUsage "$0"; exit 0;;
         --date|-d)  shift; date=$1; shift;;
         --date=*)   date=${1#--date=}; shift;;
         -d=*)       date=${1#-d=}; shift;;
@@ -41,7 +48,7 @@ done
 #   2012-04-13_000000
 #   $ date +%F_%H%M%S
 #   2012-04-13_141147
-[ "$date" ] || exec date "${allargs[@]}"
+[ -n "$date" ] || exec date "${allargs[@]}"
 
 parseError=
 # The Perl Date::Manip library understands many human date specifications that
@@ -88,6 +95,10 @@ transformDate()
     preprocDate=
     for word in $date
     do
+        case $word in
+            ?(+)+([0-9]))   word+="${DATEEX_PLAIN_NUMBER_UNIT}";;
+            -+([0-9]))      word+="${DATEEX_PLAIN_NUMBER_UNIT}";;
+        esac
         case $word in
             ?(+)+([0-9])s)  word="${word//[^0-9]/} seconds";;
             ?(+)+([0-9])m)  word="${word//[^0-9]/} minutes";;
