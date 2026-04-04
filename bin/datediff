@@ -1,10 +1,11 @@
 #!/bin/bash
 # Source: http://unix.stackexchange.com/a/24636/18876
 # See also: dateutils.ddiff
+shopt -qs extglob
 
 DATE=dateex; type -t "$DATE" >/dev/null || DATE=date	# Use extended date parsing via dateex if available.
 
-readonly availableOutputFormats='seconds|minutes|hours|days|weeks|months|years|generations|whole-units|smallest-unit|best-unit|largest-unit|textform'
+readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|textform'
 printUsage()
 {
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-u|--utc|--universal] [-?|-h|--help] ...'
@@ -22,7 +23,55 @@ Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-u|--utc|--universal] [-o|--output ${availableOutputFormats}] -s|--seconds|-d|--days NUM [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] -s|--seconds|-d|--days NUM"
+    echo
+    cat <<HELPTEXT
+Test whether the difference is greater / smaller than AGE.
+SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
+for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '... --newer|--older|-lt|-le|-eq|-ne|-ge|-gt AGE[SUFFIX] DATE|TIME [DATE|TIME]'
+    echo
+    cat <<HELPTEXT
+Test whether the difference falls inside / outside TIMESLOT. TIMESLOT can be one
+of second|minute|hour|day|week|month|year.
+For example, --within day would yield false despite an actual age difference of
+only seconds if one is before midnight and the other shortly after midnight,
+whereas "-le 1d" would yield true as long as the actual difference is within
+86400 seconds.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] DATE|TIME [DATE|TIME]'
+    echo
+}
+
+parseAge()
+{
+    case "$1" in
+	+([0-9])?(s))			    age="${1%s}";;
+	+([0-9])m)			    age=$((${1%m} * 60));;
+	+([0-9])h)			    age=$((${1%h} * 3600));;
+	+([0-9])d)			    age=$((${1%d} * 86400));;
+	+([0-9])w)			    age=$((${1%w} * 86400 * 7));;
+	+([0-9])mo)			    age=$((${1%mo} * 86400 * 30));;
+	+([0-9])y)			    age=$((${1%y} * 86400 * 365));;
+	+([0-9])g)			    age=$((${1%g} * 86400 * 9131));;
+	*)				    printf >&2 'ERROR: Invalid AGE: "%s".\n' "$1"; printUsage "$0" >&2; exit 2;;
+    esac
+}
+parseTimeslot()
+{
+    case "$1" in
+	s?(econd))			    timeformat='%s';;
+	m?(inute))			    timeformat='%F_%H:%M';;
+	h?(our))			    timeformat='%F_%H';;
+	d?(ay))				    timeformat='%F';;
+	w?(eek))			    timeformat='%G_%V';;
+	mo?(nth))			    timeformat='%Y_%m';;
+	y?(ear))			    timeformat='%Y';;
+	*)				    printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n' "$1"; printUsage "$0" >&2; exit 2;;
+    esac
 }
 
 typeset -a dateArgs=()
@@ -30,6 +79,8 @@ hasDifference=
 secondsDiff=0
 daysDiff=
 outputFormat=
+spanCompareOp=
+formatCompareOp=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -39,13 +90,41 @@ do
 	--output|-o)	shift; outputFormat="$1"; shift;;
 	--seconds|-s)	shift; secondsDiff="${1:?}"; shift; hasDifference=t;;
 	--days|-d)	shift; daysDiff="${1:?}"; shift; hasDifference=t;;
+
+	--newer)	shift; parseAge "$1"; shift; spanCompareOp=-lt;;
+	--older)	shift; parseAge "$1"; shift; spanCompareOp=-gt;;
+	-lt|-le|-eq|-ne|-ge|-gt)
+			spanCompareOp="$1"; shift; parseAge "$1"; shift;;
+	--within|-w)	shift; parseTimeslot "$1"; formatCompareOp='='; shift;;
+	--outside|-W)	shift; parseTimeslot "$1"; formatCompareOp='!='; shift;;
+
 	--)		[ "$hasDifference" ] || shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
 done
+if [ -n "$spanCompareOp" -o -n "$formatCompareOp" ]; then
+    if [ "$hasDifference" ]; then
+	echo 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
+	echo
+	printUsage "$0"
+	exit 2
+    elif [ $# -lt 1 -o $# -gt 2 ]; then
+	printUsage "$0"
+	exit 2
+    fi >&2
 
-if [ "$hasDifference" ]; then
+    if [ -n "$formatCompareOp" ]; then
+	d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") || exit 2
+	d2=$("$DATE" "${dateArgs[@]}" --date="${2:-}" "+${timeformat:?}") || exit 2
+	[ "$d1" $formatCompareOp "$d2" ]
+    else
+	d1=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
+	d2=$("$DATE" "${dateArgs[@]}" --date="${2:-}" +%s) || exit 2
+	delta=$((d2 - d1))
+	[ $((delta < 0 ? -delta : delta)) ${spanCompareOp:?} $age ]
+    fi; exit $?
+elif [ "$hasDifference" ]; then
     if [ $# -gt 0 ]; then
 	printUsage "$0" >&2
 	exit 2
@@ -98,14 +177,15 @@ calculateUnit "$daysDiff"    generation 9131
 case "$outputFormat" in
     '')		    joinBy ' = ' "${diffInUnits[@]}";;
 
-    seconds)	    printf '%s\n' "$secondsDiff";;
-    minutes)	    printf '%s\n' "$((secondsDiff / 60))";;
-    hours)	    printf '%s\n' "$((secondsDiff / 3600))";;
-    days)	    printf '%s\n' "$daysDiff";;
-    weeks)	    printf '%s\n' "$((daysDiff / 7))";;
-    months)	    printf '%s\n' "$((daysDiff / 30))";;
-    years)	    printf '%s\n' "$((daysDiff / 365))";;
-    generations)    printf '%s\n' "$((daysDiff / 9131))";;
+    s?(econd?(s)))  printf '%s\n' "$secondsDiff";;
+    m?(inute?(s)))  printf '%s\n' "$((secondsDiff / 60))";;
+    h?(our?(s)))    printf '%s\n' "$((secondsDiff / 3600))";;
+    d?(ay?(s)))	    printf '%s\n' "$daysDiff";;
+    w?(eek?(s)))    printf '%s\n' "$((daysDiff / 7))";;
+    mo?(nth?(s)))   printf '%s\n' "$((daysDiff / 30))";;
+    y?(ear?(s)))    printf '%s\n' "$((daysDiff / 365))";;
+    g?(eneration?(s)))
+		    printf '%s\n' "$((daysDiff / 9131))";;
 
     whole-units)    # Choose all units that are not just a fraction; i.e. do not start with 0.
 		    typeset -a wholeUnits=()
