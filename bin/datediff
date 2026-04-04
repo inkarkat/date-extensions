@@ -56,8 +56,8 @@ else
 	exit 2
     fi
 
-    typeset d1; d1=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 1
-    typeset d2; d2=$("$DATE" "${dateArgs[@]}" --date="${2:-}" +%s) || exit 1
+    typeset d1; d1=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
+    typeset d2; d2=$("$DATE" "${dateArgs[@]}" --date="${2:-}" +%s) || exit 2
     secondsDiff=$(( (d1-d2) > 0 ? (d1-d2) : (d2-d1)))
 fi
 [ -n "$daysDiff" ] || daysDiff=$(( (secondsDiff + 43200) / 86400 ))
