@@ -7,13 +7,15 @@ DATE=dateex; type -t "$DATE" >/dev/null || DATE=date	# Use extended date parsing
 readonly availableOutputFormats='seconds|minutes|hours|days|weeks|months|years|generations|whole-units|smallest-unit|best-unit|largest-unit|textform'
 printUsage()
 {
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-u|--utc|--universal] [-?|-h|--help] ...'
+    echo
     cat <<HELPTEXT
 Calculate difference between two DATEs or TIMEs / the passed DATE or TIME and
 now, and print it in flexible units depending on the magnitude of the
 difference.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-u|--utc|--universal] [-o|--output ${availableOutputFormats}] DATE|TIME [DATE|TIME] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] DATE|TIME [DATE|TIME]"
     echo
     cat <<HELPTEXT
 Print the passed difference in seconds or days in flexible units depending on
