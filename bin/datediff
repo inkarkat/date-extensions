@@ -218,7 +218,8 @@ case "$outputFormat" in
 		    done
 		    printf '%s\n' "$best"
 		    ;;
-    textform)	    alternatives=("${diffInUnits[@]}" "$(joinBy ' = ' "${diffInUnits[@]}")")
+    textform)	    alternatives=("${diffInUnits[@]}")
+		    [ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ' = ' "${diffInUnits[@]}")")
 		    joinBy --prefix '[' --suffix ']' '|' "${alternatives[@]}"
 		    ;;
     *)		    printf >&2 'ERROR: Invalid output format: %s\n' "$outputFormat"; exit 2;;
