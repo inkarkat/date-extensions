@@ -45,6 +45,9 @@ HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" '-w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] DATE|TIME [DATE|TIME]'
     echo
     cat <<HELPTEXT
+    --utc|--universal|-u
+			Use Coordinated Universal Time (UTC) instead of local
+			time for all dates.
     --absolute|-a	Print the absolute (positive) difference, i.e. ignore
 			which of the two dates is earlier.
 HELPTEXT
