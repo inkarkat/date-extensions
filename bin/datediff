@@ -16,7 +16,7 @@ now, and print it in flexible units depending on the magnitude of the
 difference.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] DATE|TIME [DATE|TIME]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] [-a|--absolute] DATE|TIME [DATE|TIME]"
     echo
     cat <<HELPTEXT
 Print the passed difference in seconds or days in flexible units depending on
@@ -44,6 +44,10 @@ HELPTEXT
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '-w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] DATE|TIME [DATE|TIME]'
     echo
+    cat <<HELPTEXT
+    --absolute|-a	Print the absolute (positive) difference, i.e. ignore
+			which of the two dates is earlier.
+HELPTEXT
 }
 
 parseAge()
@@ -76,6 +80,7 @@ parseTimeslot()
 }
 
 typeset -a dateArgs=()
+isAbsolute=
 hasDifference=
 secondsDiff=0
 daysDiff=
@@ -88,6 +93,7 @@ do
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 	--universal|--utc|-u)
 			dateArgs+=("$1"); shift;;
+	--absolute|-a)	isAbsolute=t; shift;;
 	--output|-o)	shift; outputFormat="$1"; shift;;
 	--seconds|-s)	shift; secondsDiff="${1:?}"; shift; hasDifference=t;;
 	--days|-d)	shift; daysDiff="${1:?}"; shift; hasDifference=t;;
@@ -137,10 +143,14 @@ else
 
     d1=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
     d2=$("$DATE" "${dateArgs[@]}" --date="${2:-@$NOW}" +%s) || exit 2
-    delta=$((d2 - d1))
-    secondsDiff=$((delta < 0 ? -delta : delta))
+    secondsDiff=$((d2 - d1))
+    [ "$isAbsolute" ] && secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
 fi
-[ -n "$daysDiff" ] || daysDiff=$(( (secondsDiff + 43200) / 86400 ))
+if [ -z "$daysDiff" ]; then
+    [ "${secondsDiff:0:1}" = '-' ] \
+	&& daysDiff=-$(( (${secondsDiff#-} + 43200) / 86400 )) \
+	|| daysDiff=$(( (secondsDiff + 43200) / 86400 ))
+fi
 
 typeset -a diffInUnits=()
 addDiffUnit()
@@ -149,11 +159,11 @@ addDiffUnit()
     local unit="$1"; shift
 
     [ "$diff" = 0 -a "$unit" != second ] && return	# Skip values that are zero, but keep at least "0 seconds" as the pathological corner case.
-    local flooredDiff="${diff%.*}"
+    local flooredDiff="${diff%.*}"; flooredDiff=${flooredDiff#-}
     [ ${#flooredDiff} -gt 4 ] && return	# Skip values that are too large (>9999).
 
     local unitPlural='s'
-    [ "$diff" = '1' ] && unitPlural=
+    [ "${diff#-}" = '1' ] && unitPlural=
 
     diffInUnits+=("$diff ${unit}${unitPlural}")
 }
@@ -200,7 +210,7 @@ case "$outputFormat" in
 		    typeset -a wholeUnits=()
 		    for unit in "${diffInUnits[@]}"
 		    do
-			[ "${unit:0:1}" = 0 ] || wholeUnits+=("$unit")
+			[ "${unit:0:1}" = 0 -o "${unit:0:2}" = -0 ] || wholeUnits+=("$unit")
 		    done
 		    if [ ${#wholeUnits[@]} -eq 0 ]; then
 			printf '%s\n' "${diffInUnits[-1]}"
@@ -214,7 +224,7 @@ case "$outputFormat" in
 		    for ((i = $((${#diffInUnits[@]} - 1)); i >= 0; i--))
 		    do
 			best="${diffInUnits[i]}"
-			[ "${best:0:1}" = 0 ] || break
+			[ "${best:0:1}" = 0 -o "${best:0:2}" = -0 ] || break
 		    done
 		    printf '%s\n' "$best"
 		    ;;
