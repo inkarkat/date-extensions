@@ -87,7 +87,7 @@ typeset -a dateArgs=()
 isAbsolute=
 isDirection=t
 hasDifference=
-secondsDiff=0
+secondsDiff=
 daysDiff=
 outputFormat=
 spanCompareOp=
@@ -184,6 +184,7 @@ addDiffUnit()
     local diff="$1"; shift
     local unit="$1"; shift
 
+    [ -n "$diff" ] || return
     [ "$diff" = 0 -a "$unit" != second ] && return	# Skip values that are zero, but keep at least "0 seconds" as the pathological corner case.
     local flooredDiff="${diff%.*}"; flooredDiff=${flooredDiff#-}
     [ ${#flooredDiff} -gt 4 ] && return	# Skip values that are too large (>9999).
