@@ -16,7 +16,7 @@ now, and print it in flexible units depending on the magnitude of the
 difference.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] [-a|--absolute] DATE|TIME [DATE|TIME]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] [-a|--absolute] [--no-direction|DATE|TIME] DATE|TIME"
     echo
     cat <<HELPTEXT
 Print the passed difference in seconds or days in flexible units depending on
@@ -50,6 +50,7 @@ HELPTEXT
 			time for all dates.
     --absolute|-a	Print the absolute (positive) difference, i.e. ignore
 			which of the two dates is earlier.
+    --no-direction	No "in / ago" when comparing to now.
 HELPTEXT
 }
 
@@ -84,6 +85,7 @@ parseTimeslot()
 
 typeset -a dateArgs=()
 isAbsolute=
+isDirection=t
 hasDifference=
 secondsDiff=0
 daysDiff=
@@ -97,6 +99,7 @@ do
 	--universal|--utc|-u)
 			dateArgs+=("$1"); shift;;
 	--absolute|-a)	isAbsolute=t; shift;;
+	--no-direction)	isDirection=; shift;;
 	--output|-o)	shift; outputFormat="$1"; shift;;
 	--seconds|-s)	shift; secondsDiff="${1:?}"; shift; hasDifference=t;;
 	--days|-d)	shift; daysDiff="${1:?}"; shift; hasDifference=t;;
@@ -158,7 +161,7 @@ else
     secondsDiff=$((d2 - d1))
     if [ "$isAbsolute" ]; then
 	secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
-    elif [ $# -eq 1 ]; then
+    elif [ $# -eq 1 ] && [ "$isDirection" ]; then
 	if [ $secondsDiff -eq 0 ]; then
 	    diffInUnits+=('just now')
 	elif [ $secondsDiff -gt 0 ]; then
