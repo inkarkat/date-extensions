@@ -60,6 +60,7 @@ parseAge()
 	*)				    printf >&2 'ERROR: Invalid AGE: "%s".\n' "$1"; printUsage "$0" >&2; exit 2;;
     esac
 }
+timeformat='%s'
 parseTimeslot()
 {
     case "$1" in
@@ -103,6 +104,7 @@ do
 	*)		break;;
     esac
 done
+: ${NOW:=$(printf '%(%s)T' -1)}
 if [ -n "$spanCompareOp" -o -n "$formatCompareOp" ]; then
     if [ "$hasDifference" ]; then
 	echo 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
@@ -114,13 +116,11 @@ if [ -n "$spanCompareOp" -o -n "$formatCompareOp" ]; then
 	exit 2
     fi >&2
 
+    d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") || exit 2
+    d2=$("$DATE" "${dateArgs[@]}" --date="${2:-@$NOW}" "+${timeformat:?}") || exit 2
     if [ -n "$formatCompareOp" ]; then
-	d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") || exit 2
-	d2=$("$DATE" "${dateArgs[@]}" --date="${2:-}" "+${timeformat:?}") || exit 2
 	[ "$d1" $formatCompareOp "$d2" ]
     else
-	d1=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
-	d2=$("$DATE" "${dateArgs[@]}" --date="${2:-}" +%s) || exit 2
 	delta=$((d2 - d1))
 	[ $((delta < 0 ? -delta : delta)) ${spanCompareOp:?} $age ]
     fi; exit $?
@@ -135,9 +135,10 @@ else
 	exit 2
     fi
 
-    typeset d1; d1=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
-    typeset d2; d2=$("$DATE" "${dateArgs[@]}" --date="${2:-}" +%s) || exit 2
-    secondsDiff=$(( (d1-d2) > 0 ? (d1-d2) : (d2-d1)))
+    d1=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
+    d2=$("$DATE" "${dateArgs[@]}" --date="${2:-@$NOW}" +%s) || exit 2
+    delta=$((d2 - d1))
+    secondsDiff=$((delta < 0 ? -delta : delta))
 fi
 [ -n "$daysDiff" ] || daysDiff=$(( (secondsDiff + 43200) / 86400 ))
 
