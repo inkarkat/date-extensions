@@ -114,6 +114,10 @@ do
     esac
 done
 : ${NOW:=$(printf '%(%s)T' -1)}
+prefix=
+suffix=
+sigil=
+typeset -a diffInUnits=()
 if [ -n "$spanCompareOp" -o -n "$formatCompareOp" ]; then
     if [ "$hasDifference" ]; then
 	echo 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
@@ -144,10 +148,27 @@ else
 	exit 2
     fi
 
-    d1=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
-    d2=$("$DATE" "${dateArgs[@]}" --date="${2:-@$NOW}" +%s) || exit 2
+    if [ $# -eq 1 ]; then
+	d1=$("$DATE" "${dateArgs[@]}" --date="@$NOW" +%s) || exit 2
+	d2=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
+    else
+	d1=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
+	d2=$("$DATE" "${dateArgs[@]}" --date="$2" +%s) || exit 2
+    fi
     secondsDiff=$((d2 - d1))
-    [ "$isAbsolute" ] && secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
+    if [ "$isAbsolute" ]; then
+	secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
+    elif [ $# -eq 1 ]; then
+	if [ $secondsDiff -eq 0 ]; then
+	    diffInUnits+=('just now')
+	elif [ $secondsDiff -gt 0 ]; then
+	    prefix='in '
+	else
+	    secondsDiff=$((-secondsDiff))
+	    sigil='-'
+	    suffix=' ago'
+	fi
+    fi
 fi
 if [ -z "$daysDiff" ]; then
     [ "${secondsDiff:0:1}" = '-' ] \
@@ -155,7 +176,6 @@ if [ -z "$daysDiff" ]; then
 	|| daysDiff=$(( (secondsDiff + 43200) / 86400 ))
 fi
 
-typeset -a diffInUnits=()
 addDiffUnit()
 {
     local diff="$1"; shift
@@ -184,11 +204,15 @@ printCalculated()
     local divisor=$1; shift
     local unitDiff=$(divround $((100 * diff / divisor)))
     local flooredDiff="${unitDiff%.*}"
-    printSingle $flooredDiff
+    printf '%d\n' $flooredDiff
 }
-printSingle()
+printSingleUnit()
 {
-    printf '%s\n' "${1:?}"
+    printf '%d\n' "${1:?}"
+}
+printOne()
+{
+    printf '%s%s%s\n' "$prefix" "${1:?}" "$suffix"
 }
 
 addDiffUnit   "$secondsDiff" second
@@ -201,17 +225,17 @@ calculateUnit "$daysDiff"    year 365
 calculateUnit "$daysDiff"    generation 9131
 
 case "$outputFormat" in
-    '')		    joinBy ' = ' "${diffInUnits[@]}";;
+    '')		    joinBy ${prefix:+--prefix "$prefix"} ${suffix:+--suffix "$suffix"} ' = ' "${diffInUnits[@]}";;
 
-    s?(econd?(s)))  printSingle "$secondsDiff";;
-    m?(inute?(s)))  printCalculated $secondsDiff 60;;
-    h?(our?(s)))    printCalculated $secondsDiff 3600;;
-    d?(ay?(s)))	    printSingle $daysDiff;;
-    w?(eek?(s)))    printCalculated $daysDiff 7;;
-    mo?(nth?(s)))   printCalculated $daysDiff 30;;
-    y?(ear?(s)))    printCalculated $daysDiff 365;;
+    s?(econd?(s)))  printSingleUnit ${sigil}${secondsDiff};;
+    m?(inute?(s)))  printCalculated ${sigil}${secondsDiff} 60;;
+    h?(our?(s)))    printCalculated ${sigil}${secondsDiff} 3600;;
+    d?(ay?(s)))	    printSingleUnit ${sigil}${daysDiff};;
+    w?(eek?(s)))    printCalculated ${sigil}${daysDiff} 7;;
+    mo?(nth?(s)))   printCalculated ${sigil}${daysDiff} 30;;
+    y?(ear?(s)))    printCalculated ${sigil}${daysDiff} 365;;
     g?(eneration?(s)))
-		    printCalculated $daysDiff 9131;;
+		    printCalculated ${sigil}${daysDiff} 9131;;
 
     whole-units)    # Choose all units that are not just a fraction; i.e. do not start with 0.
 		    typeset -a wholeUnits=()
@@ -220,23 +244,27 @@ case "$outputFormat" in
 			[ "${unit:0:1}" = 0 -o "${unit:0:2}" = -0 ] || wholeUnits+=("$unit")
 		    done
 		    if [ ${#wholeUnits[@]} -eq 0 ]; then
-			printSingle "${diffInUnits[-1]}"
+			printOne "${diffInUnits[-1]}"
 		    else
-			joinBy ' = ' "${wholeUnits[@]}"
+			joinBy ${prefix:+--prefix "$prefix"} ${suffix:+--suffix "$suffix"} ' = ' "${wholeUnits[@]}"
 		    fi
 		    ;;
-    smallest-unit)  printSingle "${diffInUnits[0]}";;
-    largest-unit)   printSingle "${diffInUnits[-1]}";;
+    smallest-unit)  printOne "${diffInUnits[0]}";;
+    largest-unit)   printOne "${diffInUnits[-1]}";;
     best-unit)	    # Choose the largest one that is not just a fraction; i.e. does not start with 0.
 		    for ((i = $((${#diffInUnits[@]} - 1)); i >= 0; i--))
 		    do
 			best="${diffInUnits[i]}"
 			[ "${best:0:1}" = 0 -o "${best:0:2}" = -0 ] || break
 		    done
-		    printSingle "$best"
+		    printOne "$best"
 		    ;;
-    textform)	    alternatives=("${diffInUnits[@]}")
-		    [ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ' = ' "${diffInUnits[@]}")")
+    textform)	    alternatives=()
+		    for d in "${diffInUnits[@]}"
+		    do
+			alternatives+=("${prefix}${d}${suffix}")
+		    done
+		    [ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ${prefix:+--prefix "$prefix"} ${suffix:+--suffix "$suffix"} ' = ' "${diffInUnits[@]}")")
 		    joinBy --prefix '[' --suffix ']' '|' "${alternatives[@]}"
 		    ;;
     *)		    printf >&2 'ERROR: Invalid output format: %s\n' "$outputFormat"; exit 2;;
