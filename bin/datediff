@@ -136,7 +136,7 @@ prefix=
 suffix=
 sigil=
 typeset -a diffInUnits=()
-if [ -n "$spanCompareOp" -o -n "$formatCompareOp" ]; then
+if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
     if [ "$hasDifference" ]; then
 	echo 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
 	echo

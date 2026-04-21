@@ -17,3 +17,13 @@ load fixture
     run -0 datediff -h
     assert_line -n 0 -e '^Usage:'
 }
+
+@test "no DATE prints usage" {
+    run -2 datediff --utc
+    assert_line -n 0 -e '^Usage:'
+}
+
+@test "three DATEs prints usage" {
+    run -2 datediff 2026-04-20 2026-04-21 2026-04-22
+    assert_line -n 0 -e '^Usage:'
+}
