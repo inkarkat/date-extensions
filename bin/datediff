@@ -162,8 +162,16 @@ calculateUnit()
     local diff=$1; shift
     local unit=$1; shift
     local divisor=$1; shift
-    local unitDiff="$(divround $((100 * diff / divisor)))"
+    local unitDiff=$(divround $((100 * diff / divisor)))
     addDiffUnit "$unitDiff" "$unit"
+}
+printCalculated()
+{
+    local diff=$1; shift
+    local divisor=$1; shift
+    local unitDiff=$(divround $((100 * diff / divisor)))
+    local flooredDiff="${unitDiff%.*}"
+    printf '%d\n' $flooredDiff
 }
 
 addDiffUnit   "$secondsDiff" second
@@ -178,15 +186,15 @@ calculateUnit "$daysDiff"    generation 9131
 case "$outputFormat" in
     '')		    joinBy ' = ' "${diffInUnits[@]}";;
 
-    s?(econd?(s)))  printf '%s\n' "$secondsDiff";;
-    m?(inute?(s)))  printf '%s\n' "$((secondsDiff / 60))";;
-    h?(our?(s)))    printf '%s\n' "$((secondsDiff / 3600))";;
-    d?(ay?(s)))	    printf '%s\n' "$daysDiff";;
-    w?(eek?(s)))    printf '%s\n' "$((daysDiff / 7))";;
-    mo?(nth?(s)))   printf '%s\n' "$((daysDiff / 30))";;
-    y?(ear?(s)))    printf '%s\n' "$((daysDiff / 365))";;
+    s?(econd?(s)))  printf '%d\n' "$secondsDiff";;
+    m?(inute?(s)))  printCalculated $secondsDiff 60;;
+    h?(our?(s)))    printCalculated $secondsDiff 3600;;
+    d?(ay?(s)))	    printf '%d\n' $daysDiff;;
+    w?(eek?(s)))    printCalculated $daysDiff 7;;
+    mo?(nth?(s)))   printCalculated $daysDiff 30;;
+    y?(ear?(s)))    printCalculated $daysDiff 365;;
     g?(eneration?(s)))
-		    printf '%s\n' "$((daysDiff / 9131))";;
+		    printCalculated $daysDiff 9131;;
 
     whole-units)    # Choose all units that are not just a fraction; i.e. do not start with 0.
 		    typeset -a wholeUnits=()
