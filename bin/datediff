@@ -184,7 +184,11 @@ printCalculated()
     local divisor=$1; shift
     local unitDiff=$(divround $((100 * diff / divisor)))
     local flooredDiff="${unitDiff%.*}"
-    printf '%d\n' $flooredDiff
+    printSingle $flooredDiff
+}
+printSingle()
+{
+    printf '%s\n' "${1:?}"
 }
 
 addDiffUnit   "$secondsDiff" second
@@ -199,10 +203,10 @@ calculateUnit "$daysDiff"    generation 9131
 case "$outputFormat" in
     '')		    joinBy ' = ' "${diffInUnits[@]}";;
 
-    s?(econd?(s)))  printf '%d\n' "$secondsDiff";;
+    s?(econd?(s)))  printSingle "$secondsDiff";;
     m?(inute?(s)))  printCalculated $secondsDiff 60;;
     h?(our?(s)))    printCalculated $secondsDiff 3600;;
-    d?(ay?(s)))	    printf '%d\n' $daysDiff;;
+    d?(ay?(s)))	    printSingle $daysDiff;;
     w?(eek?(s)))    printCalculated $daysDiff 7;;
     mo?(nth?(s)))   printCalculated $daysDiff 30;;
     y?(ear?(s)))    printCalculated $daysDiff 365;;
@@ -216,20 +220,20 @@ case "$outputFormat" in
 			[ "${unit:0:1}" = 0 -o "${unit:0:2}" = -0 ] || wholeUnits+=("$unit")
 		    done
 		    if [ ${#wholeUnits[@]} -eq 0 ]; then
-			printf '%s\n' "${diffInUnits[-1]}"
+			printSingle "${diffInUnits[-1]}"
 		    else
 			joinBy ' = ' "${wholeUnits[@]}"
 		    fi
 		    ;;
-    smallest-unit)  printf '%s\n' "${diffInUnits[0]}";;
-    largest-unit)   printf '%s\n' "${diffInUnits[-1]}";;
+    smallest-unit)  printSingle "${diffInUnits[0]}";;
+    largest-unit)   printSingle "${diffInUnits[-1]}";;
     best-unit)	    # Choose the largest one that is not just a fraction; i.e. does not start with 0.
 		    for ((i = $((${#diffInUnits[@]} - 1)); i >= 0; i--))
 		    do
 			best="${diffInUnits[i]}"
 			[ "${best:0:1}" = 0 -o "${best:0:2}" = -0 ] || break
 		    done
-		    printf '%s\n' "$best"
+		    printSingle "$best"
 		    ;;
     textform)	    alternatives=("${diffInUnits[@]}")
 		    [ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ' = ' "${diffInUnits[@]}")")
