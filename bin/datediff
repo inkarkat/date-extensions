@@ -23,7 +23,7 @@ Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] -s|--seconds|-d|--days NUM"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
     echo
     cat <<HELPTEXT
 Test whether the difference is greater / smaller than AGE.
@@ -49,8 +49,10 @@ HELPTEXT
 			Use Coordinated Universal Time (UTC) instead of local
 			time for all dates.
     --absolute|-a	Print the absolute (positive) difference, i.e. ignore
-			which of the two dates is earlier.
-    --no-direction	No "in / ago" when comparing to now.
+			which of the two dates is earlier / the sign of the
+			passed difference.
+    --no-direction	No "in / ago" when comparing to now / passed
+			differences.
 HELPTEXT
 }
 
@@ -140,10 +142,32 @@ if [ -n "$spanCompareOp" -o -n "$formatCompareOp" ]; then
 	delta=$((d2 - d1))
 	[ $((delta < 0 ? -delta : delta)) ${spanCompareOp:?} $age ]
     fi; exit $?
-elif [ "$hasDifference" ]; then
+elif [ -n "$secondsDiff" ]; then
     if [ $# -gt 0 ]; then
 	printUsage "$0" >&2
 	exit 2
+    fi
+elif [ -n "$daysDiff" ]; then
+    if [ $# -gt 0 ]; then
+	printUsage "$0" >&2
+	exit 2
+    fi
+
+    if [ "$isAbsolute" ]; then
+	daysDiff=$((daysDiff < 0 ? -daysDiff : daysDiff))
+    elif [ "$isDirection" ]; then
+	if [ $daysDiff -eq 0 ]; then
+	    diffInUnits+=('today')
+	elif [ $daysDiff -gt 0 ]; then
+	    prefix='in '
+	else
+	    daysDiff=$((-daysDiff))
+	    sigil='-'
+	    suffix=' ago'
+	fi
+    fi
+    if [ $daysDiff -eq 0 ]; then
+	diffInUnits+=('0 days')
     fi
 else
     if [ $# -lt 1 -o $# -gt 2 ]; then
@@ -159,9 +183,12 @@ else
 	d2=$("$DATE" "${dateArgs[@]}" --date="$2" +%s) || exit 2
     fi
     secondsDiff=$((d2 - d1))
+    [ $# -eq 1 ] || isDirection=    # Disable direction if two dates are given.
+fi
+if [ -n "$secondsDiff" ]; then
     if [ "$isAbsolute" ]; then
 	secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
-    elif [ $# -eq 1 ] && [ "$isDirection" ]; then
+    elif [ "$isDirection" ]; then
 	if [ $secondsDiff -eq 0 ]; then
 	    diffInUnits+=('just now')
 	elif [ $secondsDiff -gt 0 ]; then
