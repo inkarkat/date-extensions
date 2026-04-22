@@ -17,8 +17,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output seconds '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output seconds '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -37,8 +38,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output minutes '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output minutes '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -57,8 +59,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output hours '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output hours '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -77,8 +80,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output days '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output days '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -97,8 +101,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output weeks '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output weeks '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -117,8 +122,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output months '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output months '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -137,8 +143,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output years '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output years '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -157,8 +164,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output generations '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output generations '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -177,8 +185,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output whole-units '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output whole-units '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -197,8 +206,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output smallest-unit '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output smallest-unit '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -217,8 +227,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output best-unit '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output best-unit '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -237,8 +248,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output largest-unit '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output largest-unit '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -257,7 +269,8 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --output textform '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --output textform '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }

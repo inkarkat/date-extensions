@@ -16,8 +16,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff --absolute 10:00 "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff --absolute 10:00 "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -40,15 +41,17 @@ typeset -grA DATE_DATA=(
 @test "absolute diff between two dates" {
     for date in "${!DATE_DATA[@]}"
     do
-	run -0 datediff --absolute '2026-04-20 10:00' "$date"
-	assert_output "${DATE_DATA["$date"]}" || fail "$date"
+	run -0 datediff --absolute '2026-04-20 10:00' "$date" \
+	    && assert_output "${DATE_DATA["$date"]}" \
+	    || fail "$date"
     done
 }
 
 @test "absolute diff between now and date" {
     for date in "${!DATE_DATA[@]}"
     do
-	NOW=1776672000 run -0 datediff --absolute "$date"
-	assert_output "${DATE_DATA["$date"]}" || fail "$date"
+	NOW=1776672000 run -0 datediff --absolute "$date" \
+	    && assert_output "${DATE_DATA["$date"]}" \
+	    || fail "$date"
     done
 }

@@ -16,8 +16,9 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff 10:00 "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff 10:00 "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
 
@@ -39,7 +40,8 @@ load fixture
 
     for date in "${!data[@]}"
     do
-	run -0 datediff '2026-04-20 10:00' "$date"
-	assert_output "${data["$date"]}" || fail "$date"
+	run -0 datediff '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
     done
 }
