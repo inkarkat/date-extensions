@@ -29,6 +29,10 @@ load fixture
 @test "passed days diff" {
     typeset -A data=(
 	[0]='today = 0 days'
+	[1]='tomorrow = in 1 day'
+	[-1]='yesterday = 1 day ago'
+	[2]='in 0.3 weeks'
+	[-2]='0.3 weeks ago'
 	[11]='in 1.6 weeks = 0.4 months'
 	[22]='in 3.1 weeks = 0.7 months'
 	[42]='in 6 weeks = 1.4 months = 0.1 years'

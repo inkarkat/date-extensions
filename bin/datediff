@@ -218,6 +218,17 @@ if [ -z "$daysDiff" ]; then
 	&& daysDiff=-$(( (${secondsDiff#-} + 43200) / 86400 )) \
 	|| daysDiff=$(( (secondsDiff + 43200) / 86400 ))
 fi
+if [ -z "$secondsDiff" ] && [ "$isDirection" ] && [ ! "$isAbsolute" ] && [ $daysDiff -eq 1 ]; then
+    if [ "$sigil" = - ]; then
+	diffInUnits+=('yesterday' '1 day ago')
+	suffix=''
+	daysDiff=
+    else
+	diffInUnits+=('tomorrow' 'in 1 day')
+	prefix=''
+	daysDiff=
+    fi
+fi
 
 addDiffUnit()
 {
@@ -240,6 +251,7 @@ calculateUnit()
     local unit=$1; shift
     local divisor=$1; shift
     local unitDiff=$(divround $((100 * diff / divisor)))
+    [ -n "$diff" ] || return
     addDiffUnit "$unitDiff" "$unit"
 }
 printCalculated()
