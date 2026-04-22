@@ -31,13 +31,13 @@ load fixture
 	[0]='today = 0 days'
 	[1]='tomorrow = in 1 day'
 	[-1]='yesterday = 1 day ago'
-	[2]='in 0.3 weeks'
-	[-2]='0.3 weeks ago'
-	[11]='in 1.6 weeks = 0.4 months'
-	[22]='in 3.1 weeks = 0.7 months'
-	[42]='in 6 weeks = 1.4 months = 0.1 years'
-	[103]='in 14.7 weeks = 3.4 months = 0.3 years'
-	[256]='in 36.6 weeks = 8.5 months = 0.7 years'
+	[2]='in 2 days = 0.3 weeks'
+	[-2]='2 days = 0.3 weeks ago'
+	[11]='in 11 days = 1.6 weeks = 0.4 months'
+	[22]='in 22 days = 3.1 weeks = 0.7 months'
+	[42]='in 42 days = 6 weeks = 1.4 months = 0.1 years'
+	[103]='in 103 days = 14.7 weeks = 3.4 months = 0.3 years'
+	[256]='in 256 days = 36.6 weeks = 8.5 months = 0.7 years'
 	[-18081]='2583 weeks = 602.7 months = 49.5 years = 2 generations ago'
     )
 
@@ -67,7 +67,11 @@ load fixture
 @test "passed days absolute diff" {
     typeset -A data=(
 	[0]='0 days'
-	[256]='36.6 weeks = 8.5 months = 0.7 years'
+	[1]='1 day = 0.1 weeks'
+	[-1]='1 day = 0.1 weeks'
+	[2]='2 days = 0.3 weeks'
+	[-2]='2 days = 0.3 weeks'
+	[256]='256 days = 36.6 weeks = 8.5 months = 0.7 years'
 	[-18081]='2583 weeks = 602.7 months = 49.5 years = 2 generations'
     )
 
@@ -97,7 +101,11 @@ load fixture
 @test "passed days diff --no-direction" {
     typeset -A data=(
 	[0]='0 days'
-	[256]='36.6 weeks = 8.5 months = 0.7 years'
+	[1]='1 day = 0.1 weeks'
+	[-1]='-1 day = -0.1 weeks'
+	[2]='2 days = 0.3 weeks'
+	[-2]='-2 days = -0.3 weeks'
+	[256]='256 days = 36.6 weeks = 8.5 months = 0.7 years'
 	[-18081]='-2583 weeks = -602.7 months = -49.5 years = -2 generations'
     )
 

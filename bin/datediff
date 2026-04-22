@@ -275,6 +275,7 @@ addDiffUnit   "$secondsDiff" second
 calculateUnit "$secondsDiff" minute 60
 calculateUnit "$secondsDiff" hour 3600
 calculateUnit "$secondsDiff" day 86400
+[ -z "$secondsDiff" ] && calculateUnit "$daysDiff"    day 1
 calculateUnit "$daysDiff"    week 7
 calculateUnit "$daysDiff"    month 30
 calculateUnit "$daysDiff"    year 365
