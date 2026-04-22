@@ -3,7 +3,7 @@
 # See also: dateutils.ddiff
 shopt -qs extglob
 
-DATE=dateex; type -t "$DATE" >/dev/null || DATE=date	# Use extended date parsing via dateex if available.
+: ${DATE:=date}
 
 readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|textform'
 printShortUsage()
