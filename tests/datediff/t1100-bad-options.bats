@@ -32,3 +32,15 @@ load fixture
     run -2 datediff --output notAnOutputFormat 2026-04-20
     assert_output 'ERROR: Invalid output format: notAnOutputFormat'
 }
+
+@test "both --seconds and --days prints error" {
+    run -2 datediff --seconds 1 --days 1 2026-04-20
+    assert_line -n 0 'ERROR: Cannot combine -s|--seconds with -d|--days.'
+    assert_line -n 1 -e '^Usage:'
+}
+
+@test "both --seconds and --newer prints error" {
+    run -2 datediff --seconds 1 --newer 1 2026-04-20
+    assert_line -n 0 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
+    assert_line -n 1 -e '^Usage:'
+}

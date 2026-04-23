@@ -69,6 +69,15 @@ whereas "-le 1d" would yield true as long as the actual difference is within
 HELPTEXT
 }
 
+ensureSingleDifference()
+{
+    [ "$hasDifference" ] || return 0
+    echo >&2 'ERROR: Cannot combine -s|--seconds with -d|--days.'
+    echo >&2
+    printUsage "$0" >&2
+    exit 2
+}
+
 parseAge()
 {
     case "$1" in
@@ -116,15 +125,15 @@ do
 	--absolute|-a)	isAbsolute=t; shift;;
 	--no-direction)	isDirection=; shift;;
 	--output|-o)	shift; outputFormat="$1"; shift;;
-	--seconds|-s)	shift; secondsDiff="${1:?}"; shift; hasDifference=t;;
-	--days|-d)	shift; daysDiff="${1:?}"; shift; hasDifference=t;;
+	--seconds|-s)	shift; ensureSingleDifference; secondsDiff="${1:?}"; shift; hasDifference=t;;
+	--days|-d)	shift; ensureSingleDifference; daysDiff="${1:?}"; shift; hasDifference=t;;
 
-	--newer)	shift; parseAge "$1"; shift; spanCompareOp=-lt;;
-	--older)	shift; parseAge "$1"; shift; spanCompareOp=-gt;;
+	--newer)	shift; parseAge "${1:?}"; shift; spanCompareOp=-lt;;
+	--older)	shift; parseAge "${1:?}"; shift; spanCompareOp=-gt;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; parseAge "$1"; shift;;
-	--within|-w)	shift; parseTimeslot "$1"; formatCompareOp='='; shift;;
-	--outside|-W)	shift; parseTimeslot "$1"; formatCompareOp='!='; shift;;
+			spanCompareOp="$1"; shift; parseAge "${1:?}"; shift;;
+	--within|-w)	shift; parseTimeslot "${1:?}"; formatCompareOp='='; shift;;
+	--outside|-W)	shift; parseTimeslot "${1:?}"; formatCompareOp='!='; shift;;
 
 	--)		[ "$hasDifference" ] || shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
