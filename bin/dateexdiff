@@ -1,0 +1,3 @@
+#!/bin/sh
+
+DATE=dateex exec datediff "$@"
