@@ -2,12 +2,6 @@
 
 load fixture
 
-nowRun()
-{
-    NOW=1776672000 run "$@"
-}
-
-
 @test "diff between now and date uses in ... / ... ago / just now" {
     typeset -A data=(
 	[2026-04-20 10:00:00]='just now = 0 seconds'
@@ -26,7 +20,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff "$date" \
+	run -0 datediff "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -50,7 +44,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --absolute "$date" \
+	run -0 datediff --absolute "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -74,7 +68,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --no-direction "$date" \
+	run -0 datediff --no-direction "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -89,7 +83,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output seconds "$date" \
+	run -0 datediff --output seconds "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -104,7 +98,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output minutes "$date" \
+	run -0 datediff --output minutes "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -119,7 +113,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output hours "$date" \
+	run -0 datediff --output hours "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -134,7 +128,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output days "$date" \
+	run -0 datediff --output days "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -149,7 +143,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output weeks "$date" \
+	run -0 datediff --output weeks "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -164,7 +158,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output months "$date" \
+	run -0 datediff --output months "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -179,7 +173,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output years "$date" \
+	run -0 datediff --output years "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -194,7 +188,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output generations "$date" \
+	run -0 datediff --output generations "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -209,7 +203,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output whole-units "$date" \
+	run -0 datediff --output whole-units "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -224,7 +218,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output whole-units --no-direction "$date" \
+	run -0 datediff --output whole-units --no-direction "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -239,7 +233,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output smallest-unit "$date" \
+	run -0 datediff --output smallest-unit "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -254,7 +248,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output best-unit "$date" \
+	run -0 datediff --output best-unit "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -269,7 +263,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output largest-unit "$date" \
+	run -0 datediff --output largest-unit "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -284,7 +278,7 @@ nowRun()
 
     for date in "${!data[@]}"
     do
-	nowRun -0 datediff --output textform "$date" \
+	run -0 datediff --output textform "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
