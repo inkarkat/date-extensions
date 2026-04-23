@@ -50,3 +50,9 @@ load fixture
     assert_line -n 0 'ERROR: Invalid AGE: "12x".'
     assert_line -n 1 -e '^Usage:'
 }
+
+@test "invalid TIMESLOT prints error" {
+    run -2 datediff --within eon 2026-04-20
+    assert_line -n 0 'ERROR: Invalid TIMESLOT: "eon".'
+    assert_line -n 1 -e '^Usage:'
+}
