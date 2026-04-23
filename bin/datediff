@@ -31,7 +31,7 @@ SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '... --newer|--older|-lt|-le|-eq|-ne|-ge|-gt AGE[SUFFIX] DATE|TIME [DATE|TIME]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '... --newer|--older|-lt|-le|-eq|-ne|-ge|-gt AGE[SUFFIX] [-a|--absolute] DATE|TIME [DATE|TIME]'
     echo
     cat <<HELPTEXT
 Test whether the difference falls inside / outside TIMESLOT. TIMESLOT can be one
@@ -81,15 +81,15 @@ ensureSingleDifference()
 parseAge()
 {
     case "$1" in
-	+([0-9])?(s))			    age="${1%s}";;
-	+([0-9])m)			    age=$((${1%m} * 60));;
-	+([0-9])h)			    age=$((${1%h} * 3600));;
-	+([0-9])d)			    age=$((${1%d} * 86400));;
-	+([0-9])w)			    age=$((${1%w} * 86400 * 7));;
-	+([0-9])mo)			    age=$((${1%mo} * 86400 * 30));;
-	+([0-9])y)			    age=$((${1%y} * 86400 * 365));;
-	+([0-9])g)			    age=$((${1%g} * 86400 * 9131));;
-	*)				    printf >&2 'ERROR: Invalid AGE: "%s".\n' "$1"; printUsage "$0" >&2; exit 2;;
+	?(-)+([0-9])?(s))		    age="${1%s}";;
+	?(-)+([0-9])m)			    age=$((${1%m} * 60));;
+	?(-)+([0-9])h)			    age=$((${1%h} * 3600));;
+	?(-)+([0-9])d)			    age=$((${1%d} * 86400));;
+	?(-)+([0-9])w)			    age=$((${1%w} * 86400 * 7));;
+	?(-)+([0-9])mo)			    age=$((${1%mo} * 86400 * 30));;
+	?(-)+([0-9])y)			    age=$((${1%y} * 86400 * 365));;
+	?(-)+([0-9])g)			    age=$((${1%g} * 86400 * 9131));;
+	*)				    printf >&2 'ERROR: Invalid AGE: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2;;
     esac
 }
 timeformat='%s'
@@ -103,7 +103,7 @@ parseTimeslot()
 	w?(eek))			    timeformat='%G_%V';;
 	mo?(nth))			    timeformat='%Y_%m';;
 	y?(ear))			    timeformat='%Y';;
-	*)				    printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n' "$1"; printUsage "$0" >&2; exit 2;;
+	*)				    printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2;;
     esac
 }
 
@@ -140,7 +140,19 @@ do
 	*)		break;;
     esac
 done
+
 : ${NOW:=$(printf '%(%s)T' -1)}
+parseDates()
+{
+    if [ $# -eq 1 ]; then
+	d1=$("$DATE" "${dateArgs[@]}" --date="@$NOW" "+${timeformat:?}") || return 2
+	d2=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") || return 2
+    else
+	d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") || return 2
+	d2=$("$DATE" "${dateArgs[@]}" --date="$2" "+${timeformat:?}") || return 2
+    fi
+}
+
 prefix=
 suffix=
 sigil=
@@ -156,13 +168,14 @@ if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
 	exit 2
     fi >&2
 
-    d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") || exit 2
-    d2=$("$DATE" "${dateArgs[@]}" --date="${2:-@$NOW}" "+${timeformat:?}") || exit 2
+    parseDates "$@" || exit $?
     if [ -n "$formatCompareOp" ]; then
 	[ "$d1" $formatCompareOp "$d2" ]
     else
 	delta=$((d2 - d1))
-	[ $((delta < 0 ? -delta : delta)) ${spanCompareOp:?} $age ]
+	[ "$isAbsolute" ] \
+	    && delta=$((delta < 0 ? -delta : delta))
+	[ $delta ${spanCompareOp:?} $age ]
     fi; exit $?
 elif [ -n "$secondsDiff" ]; then
     if [ $# -gt 0 ]; then
@@ -197,13 +210,7 @@ else
 	exit 2
     fi
 
-    if [ $# -eq 1 ]; then
-	d1=$("$DATE" "${dateArgs[@]}" --date="@$NOW" +%s) || exit 2
-	d2=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
-    else
-	d1=$("$DATE" "${dateArgs[@]}" --date="$1" +%s) || exit 2
-	d2=$("$DATE" "${dateArgs[@]}" --date="$2" +%s) || exit 2
-    fi
+    parseDates "$@" || exit $?
     secondsDiff=$((d2 - d1))
     [ $# -eq 1 ] || isDirection=    # Disable direction if two dates are given.
 fi

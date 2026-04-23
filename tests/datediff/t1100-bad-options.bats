@@ -44,3 +44,9 @@ load fixture
     assert_line -n 0 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
     assert_line -n 1 -e '^Usage:'
 }
+
+@test "invalid AGE prints error" {
+    run -2 datediff --newer 12x 2026-04-20
+    assert_line -n 0 'ERROR: Invalid AGE: "12x".'
+    assert_line -n 1 -e '^Usage:'
+}
