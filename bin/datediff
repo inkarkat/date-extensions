@@ -26,7 +26,8 @@ HELPDESCRIPTION
     printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
     echo
     cat <<HELPDESCRIPTION
-Test whether the difference is greater / smaller than AGE.
+Test whether the difference is greater / smaller than AGE. Can be combined with
+-o|--output to print the actual difference if the test fails.
 SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
 HELPDESCRIPTION
@@ -162,6 +163,7 @@ prefix=
 suffix=
 sigil=
 typeset -a diffInUnits=()
+status=0
 if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
     if [ "$hasDifference" ]; then
 	echo 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
@@ -174,14 +176,25 @@ if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
     fi >&2
 
     parseDates "$@" || exit $?
-    if [ -n "$formatCompareOp" ]; then
-	[ "$d1" $formatCompareOp "$d2" ]
+    if \
+	if [ -n "$formatCompareOp" ]; then
+	    [ "$d1" $formatCompareOp "$d2" ]
+	else
+	    secondsDiff=$((d2 - d1))
+	    [ "$isAbsolute" ] \
+		&& secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
+	    [ $secondsDiff ${spanCompareOp:?} $age ]
+	fi
+    then
+	exit 0
     else
-	delta=$((d2 - d1))
-	[ "$isAbsolute" ] \
-	    && delta=$((delta < 0 ? -delta : delta))
-	[ $delta ${spanCompareOp:?} $age ]
-    fi; exit $?
+	[ -n "$outputFormat" ] || exit 1
+	if [ -n "$formatCompareOp" ]; then
+	    timeformat='%s' parseDates "$@"
+	    secondsDiff=$((d2 - d1))
+	fi
+	status=1
+    fi
 elif [ -n "$secondsDiff" ]; then
     if [ $# -gt 0 ]; then
 	printUsage "$0" >&2
@@ -347,3 +360,4 @@ case "$outputFormat" in
 		    ;;
     *)		    printf >&2 'ERROR: Invalid output format: %s\n' "$outputFormat"; exit 2;;
 esac
+exit $status
