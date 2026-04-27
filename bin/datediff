@@ -38,7 +38,7 @@ Test whether the difference falls inside / outside TIMESLOT. TIMESLOT can be one
 of second|minute|hour|day|week|month|year.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] DATE|TIME [DATE|TIME]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '... -w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] DATE|TIME [DATE|TIME]'
 }
 printUsage()
 {
