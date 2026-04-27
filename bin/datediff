@@ -68,6 +68,7 @@ whereas "-le 1d" would yield true as long as the actual difference is within
 			differences.
 EXIT STATUS:
     0	Complete success.
+    1	The comparison failed; at least one DATE / TIME did not pass it.
     2	Bad invocation, wrong or missing command-line arguments.
     4	Invalid DATE(s) / TIME(s) passed.
 HELPTEXT
