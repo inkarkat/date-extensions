@@ -6,39 +6,41 @@ shopt -qs extglob
 : ${DATE:=date}
 
 readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|textform'
+readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
 printShortUsage()
 {
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-u|--utc|--universal] [-?|-h|--help] ...'
     echo
-    cat <<HELPTEXT
+    cat <<HELPDESCRIPTION
 Calculate difference between two DATEs or TIMEs / the passed DATE or TIME and
 now, and print it in flexible units depending on the magnitude of the
 difference.
-HELPTEXT
+HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] [-a|--absolute] [--no-direction|DATE|TIME] DATE|TIME"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [-a|--absolute] [--no-direction|DATE|TIME] DATE|TIME"
     echo
-    cat <<HELPTEXT
+    cat <<HELPDESCRIPTION
 Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
-HELPTEXT
+HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
     echo
-    cat <<HELPTEXT
-Test whether the difference is greater / smaller than AGE.
+    cat <<HELPDESCRIPTION
+Test whether the difference is greater / smaller than AGE. Can be combined with
+-o|--output to print the actual difference if the test fails.
 SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
-HELPTEXT
+HELPDESCRIPTION
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '... --newer|--older|-lt|-le|-eq|-ne|-ge|-gt AGE[SUFFIX] [-a|--absolute] DATE|TIME [DATE|TIME]'
     echo
-    cat <<HELPTEXT
+    cat <<HELPDESCRIPTION
 Test whether the difference falls inside / outside TIMESLOT. TIMESLOT can be one
 of second|minute|hour|day|week|month|year.
-HELPTEXT
+HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] DATE|TIME [DATE|TIME]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '... -w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] DATE|TIME [DATE|TIME]'
 }
 printUsage()
 {
@@ -66,6 +68,14 @@ whereas "-le 1d" would yield true as long as the actual difference is within
 			passed difference.
     --no-direction	No "in / ago" when comparing to now / passed
 			differences.
+    --prefix PREFIX	Put PREFIX before the output.
+    --suffix SUFFIX	Append SUFFIX at the end.
+
+EXIT STATUS:
+    0	Complete success.
+    1	The comparison failed; at least one DATE / TIME did not pass it.
+    2	Bad invocation, wrong or missing command-line arguments.
+    4	Invalid DATE(s) / TIME(s) passed.
 HELPTEXT
 }
 
@@ -114,6 +124,8 @@ hasDifference=
 secondsDiff=
 daysDiff=
 outputFormat=
+prefix=
+suffix=
 spanCompareOp=
 formatCompareOp=
 while [ $# -ne 0 ]
@@ -125,6 +137,9 @@ do
 	--absolute|-a)	isAbsolute=t; shift;;
 	--no-direction)	isDirection=; shift;;
 	--output|-o)	shift; outputFormat="$1"; shift;;
+	--prefix)	shift; prefix+="${1?}"; shift;;
+	--suffix)	shift; suffix+="${1?}"; shift;;
+
 	--seconds|-s)	shift; ensureSingleDifference; secondsDiff="${1:?}"; shift; hasDifference=t;;
 	--days|-d)	shift; ensureSingleDifference; daysDiff="${1:?}"; shift; hasDifference=t;;
 
@@ -145,18 +160,19 @@ done
 parseDates()
 {
     if [ $# -eq 1 ]; then
-	d1=$("$DATE" "${dateArgs[@]}" --date="@$NOW" "+${timeformat:?}") || return 2
-	d2=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") || return 2
+	d1=$("$DATE" "${dateArgs[@]}" --date="@$NOW" "+${timeformat:?}") \
+	    && d2=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}")
     else
-	d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") || return 2
-	d2=$("$DATE" "${dateArgs[@]}" --date="$2" "+${timeformat:?}") || return 2
-    fi
+	d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") \
+	    && d2=$("$DATE" "${dateArgs[@]}" --date="$2" "+${timeformat:?}")
+    fi || return 4
 }
 
-prefix=
-suffix=
+directionPrefix=
+directionSuffix=
 sigil=
 typeset -a diffInUnits=()
+status=0
 if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
     if [ "$hasDifference" ]; then
 	echo 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
@@ -169,14 +185,25 @@ if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
     fi >&2
 
     parseDates "$@" || exit $?
-    if [ -n "$formatCompareOp" ]; then
-	[ "$d1" $formatCompareOp "$d2" ]
+    if \
+	if [ -n "$formatCompareOp" ]; then
+	    [ "$d1" $formatCompareOp "$d2" ]
+	else
+	    secondsDiff=$((d2 - d1))
+	    [ "$isAbsolute" ] \
+		&& secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
+	    [ $secondsDiff ${spanCompareOp:?} $age ]
+	fi
+    then
+	exit 0
     else
-	delta=$((d2 - d1))
-	[ "$isAbsolute" ] \
-	    && delta=$((delta < 0 ? -delta : delta))
-	[ $delta ${spanCompareOp:?} $age ]
-    fi; exit $?
+	[ -n "$outputFormat" ] || exit 1
+	if [ -n "$formatCompareOp" ]; then
+	    timeformat='%s' parseDates "$@"
+	    secondsDiff=$((d2 - d1))
+	fi
+	status=1
+    fi
 elif [ -n "$secondsDiff" ]; then
     if [ $# -gt 0 ]; then
 	printUsage "$0" >&2
@@ -194,11 +221,11 @@ elif [ -n "$daysDiff" ]; then
 	if [ $daysDiff -eq 0 ]; then
 	    diffInUnits+=('today')
 	elif [ $daysDiff -gt 0 ]; then
-	    prefix='in '
+	    directionPrefix='in '
 	else
 	    daysDiff=$((-daysDiff))
 	    sigil='-'
-	    suffix=' ago'
+	    directionSuffix=' ago'
 	fi
     fi
     if [ $daysDiff -eq 0 ]; then
@@ -221,11 +248,11 @@ if [ -n "$secondsDiff" ]; then
 	if [ $secondsDiff -eq 0 ]; then
 	    diffInUnits+=('just now')
 	elif [ $secondsDiff -gt 0 ]; then
-	    prefix='in '
+	    directionPrefix='in '
 	else
 	    secondsDiff=$((-secondsDiff))
 	    sigil='-'
-	    suffix=' ago'
+	    directionSuffix=' ago'
 	fi
     fi
 fi
@@ -237,14 +264,16 @@ fi
 if [ -z "$secondsDiff" ] && [ "$isDirection" ] && [ ! "$isAbsolute" ] && [ $daysDiff -eq 1 ]; then
     if [ "$sigil" = - ]; then
 	diffInUnits+=('yesterday' '1 day ago')
-	suffix=''
+	directionSuffix=''
 	daysDiff=
     else
 	diffInUnits+=('tomorrow' 'in 1 day')
-	prefix=''
+	directionPrefix=''
 	daysDiff=
     fi
 fi
+prefixAndDirectionPrefix="${prefix}${directionPrefix}"
+suffixAndDirectionSuffix="${directionSuffix}${suffix}"
 
 addDiffUnit()
 {
@@ -276,15 +305,15 @@ printCalculated()
     local divisor=$1; shift
     local unitDiff=$(divround $((100 * diff / divisor)))
     local flooredDiff="${unitDiff%.*}"
-    printf '%d\n' $flooredDiff
+    printf '%s%d%s\n' "$prefix" $flooredDiff "$suffix"
 }
 printSingleUnit()
 {
-    printf '%d\n' "${1:?}"
+    printf '%s%d%s\n' "$prefix" "${1:?}" "$suffix"
 }
 printOne()
 {
-    printf '%s%s%s\n' "$prefix" "${1:?}" "$suffix"
+    printf '%s%s%s\n' "$prefixAndDirectionPrefix" "${1:?}" "$suffixAndDirectionSuffix"
 }
 
 addDiffUnit   "$secondsDiff" second
@@ -298,7 +327,7 @@ calculateUnit "$daysDiff"    year 365
 calculateUnit "$daysDiff"    generation 9131
 
 case "$outputFormat" in
-    '')		    joinBy ${prefix:+--prefix "$prefix"} ${suffix:+--suffix "$suffix"} ' = ' "${diffInUnits[@]}";;
+    '')		    joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
 
     s?(econd?(s)))  printSingleUnit ${sigil}${secondsDiff};;
     m?(inute?(s)))  printCalculated ${sigil}${secondsDiff} 60;;
@@ -319,7 +348,7 @@ case "$outputFormat" in
 		    if [ ${#wholeUnits[@]} -eq 0 ]; then
 			printOne "${diffInUnits[-1]}"
 		    else
-			joinBy ${prefix:+--prefix "$prefix"} ${suffix:+--suffix "$suffix"} ' = ' "${wholeUnits[@]}"
+			joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${wholeUnits[@]}"
 		    fi
 		    ;;
     smallest-unit)  printOne "${diffInUnits[0]}";;
@@ -335,10 +364,11 @@ case "$outputFormat" in
     textform)	    alternatives=()
 		    for d in "${diffInUnits[@]}"
 		    do
-			alternatives+=("${prefix}${d}${suffix}")
+			alternatives+=("${directionPrefix}${d}${directionSuffix}")
 		    done
-		    [ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ${prefix:+--prefix "$prefix"} ${suffix:+--suffix "$suffix"} ' = ' "${diffInUnits[@]}")")
-		    joinBy --prefix '[' --suffix ']' '|' "${alternatives[@]}"
+		    [ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ${directionPrefix:+--prefix "$directionPrefix"} ${directionSuffix:+--suffix "$directionSuffix"} ' = ' "${diffInUnits[@]}")")
+		    joinBy --prefix "${prefix}[" --suffix "]${suffix}" '|' "${alternatives[@]}"
 		    ;;
     *)		    printf >&2 'ERROR: Invalid output format: %s\n' "$outputFormat"; exit 2;;
 esac
+exit $status
