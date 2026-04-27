@@ -18,13 +18,13 @@ load fixture
     assert_line -n 0 -e '^Usage:'
 }
 
-@test "invalid DATE prints date error" {
-    LC_ALL=C run -2 datediff notADate
+@test "invalid DATE prints date error and exits with 4" {
+    LC_ALL=C run -4 datediff notADate
     assert_output "date: invalid date 'notADate'"
 }
 
-@test "invalid second DATE prints date error" {
-    LC_ALL=C run -2 datediff 2026-04-20 notADate
+@test "invalid second DATE prints date error and exits with 4" {
+    LC_ALL=C run -4 datediff 2026-04-20 notADate
     assert_output "date: invalid date 'notADate'"
 }
 

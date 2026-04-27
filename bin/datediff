@@ -66,6 +66,10 @@ whereas "-le 1d" would yield true as long as the actual difference is within
 			passed difference.
     --no-direction	No "in / ago" when comparing to now / passed
 			differences.
+EXIT STATUS:
+    0	Complete success.
+    2	Bad invocation, wrong or missing command-line arguments.
+    4	Invalid DATE(s) / TIME(s) passed.
 HELPTEXT
 }
 
@@ -145,12 +149,12 @@ done
 parseDates()
 {
     if [ $# -eq 1 ]; then
-	d1=$("$DATE" "${dateArgs[@]}" --date="@$NOW" "+${timeformat:?}") || return 2
-	d2=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") || return 2
+	d1=$("$DATE" "${dateArgs[@]}" --date="@$NOW" "+${timeformat:?}") \
+	    && d2=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}")
     else
-	d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") || return 2
-	d2=$("$DATE" "${dateArgs[@]}" --date="$2" "+${timeformat:?}") || return 2
-    fi
+	d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") \
+	    && d2=$("$DATE" "${dateArgs[@]}" --date="$2" "+${timeformat:?}")
+    fi || return 4
 }
 
 prefix=
