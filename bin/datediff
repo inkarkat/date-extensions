@@ -6,7 +6,7 @@ shopt -qs extglob
 : ${DATE:=date}
 
 readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|textform'
-readonly prefixSuffixArgs='[--prefix PREFIX] [--suffix SUFFIX]'
+readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
 printShortUsage()
 {
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-u|--utc|--universal] [-?|-h|--help] ...'
@@ -137,8 +137,8 @@ do
 	--absolute|-a)	isAbsolute=t; shift;;
 	--no-direction)	isDirection=; shift;;
 	--output|-o)	shift; outputFormat="$1"; shift;;
-	--prefix)	shift; prefix="${1?}"; shift;;
-	--suffix)	shift; suffix="${1?}"; shift;;
+	--prefix)	shift; prefix+="${1?}"; shift;;
+	--suffix)	shift; suffix+="${1?}"; shift;;
 
 	--seconds|-s)	shift; ensureSingleDifference; secondsDiff="${1:?}"; shift; hasDifference=t;;
 	--days|-d)	shift; ensureSingleDifference; daysDiff="${1:?}"; shift; hasDifference=t;;

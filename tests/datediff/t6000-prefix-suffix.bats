@@ -2,6 +2,16 @@
 
 load fixture
 
+@test "just a prefix" {
+    run -0 datediff --prefix 'result: ' --output seconds 1976-10-20
+    assert_output 'result: -1562058000'
+}
+
+@test "just a suffix" {
+    run -0 datediff --suffix ' seconds measured' --output seconds 1976-10-20
+    assert_output '-1562058000 seconds measured'
+}
+
 @test "diff with prefixed and suffixed output" {
     prefix='delta('
     suffix=') detected'
@@ -29,4 +39,9 @@ EOF
 @test "no prefix / suffix when comparison succeeds" {
     run -0 datediff --output best-unit -eq 1s "2026-04-20 10:00:01"
     assert_output ''
+}
+
+@test "multiple prefixes and suffixes are added in order" {
+    run -0 datediff --prefix 'result' --prefix ': ' --suffix ' ' --suffix 'seconds' --suffix ' measured' --suffix '.'  --output seconds 1976-10-20
+    assert_output 'result: -1562058000 seconds measured.'
 }
