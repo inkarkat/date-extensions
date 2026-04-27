@@ -10,33 +10,33 @@ printShortUsage()
 {
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-u|--utc|--universal] [-?|-h|--help] ...'
     echo
-    cat <<HELPTEXT
+    cat <<HELPDESCRIPTION
 Calculate difference between two DATEs or TIMEs / the passed DATE or TIME and
 now, and print it in flexible units depending on the magnitude of the
 difference.
-HELPTEXT
+HELPDESCRIPTION
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] [-a|--absolute] [--no-direction|DATE|TIME] DATE|TIME"
     echo
-    cat <<HELPTEXT
+    cat <<HELPDESCRIPTION
 Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
-HELPTEXT
+HELPDESCRIPTION
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
     echo
-    cat <<HELPTEXT
+    cat <<HELPDESCRIPTION
 Test whether the difference is greater / smaller than AGE.
 SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
-HELPTEXT
+HELPDESCRIPTION
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '... --newer|--older|-lt|-le|-eq|-ne|-ge|-gt AGE[SUFFIX] [-a|--absolute] DATE|TIME [DATE|TIME]'
     echo
-    cat <<HELPTEXT
+    cat <<HELPDESCRIPTION
 Test whether the difference falls inside / outside TIMESLOT. TIMESLOT can be one
 of second|minute|hour|day|week|month|year.
-HELPTEXT
+HELPDESCRIPTION
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '-w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] DATE|TIME [DATE|TIME]'
 }
