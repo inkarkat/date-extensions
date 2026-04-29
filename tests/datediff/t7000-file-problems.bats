@@ -67,3 +67,73 @@ notA dateHere
 2026-04-20 11:00:00
 EOF
 }
+
+@test "empty line in FILE is ignored" {
+    run -0 datediff --file - <<'EOF'
+
+2026-04-20 09:59:59
+
+
+2026-04-21 10:10:10
+EOF
+    assert_output - <<'EOF'
+
+1 second ago
+
+
+in 1450 minutes = 24.2 hours = 1 day = 0.1 weeks
+EOF
+}
+
+@test "compare diff with empty line in FILE is ignored" {
+    run -0 datediff --file - -lt 1h <<-EOF
+2026-04-20 09:59:59
+
+2026-04-20 10:10:10
+EOF
+    assert_output ''
+
+    run -1 datediff --file - -lt 1h <<-EOF
+2026-04-20 09:59:59
+
+2026-04-20 11:00:00
+EOF
+    assert_output ''
+}
+
+@test "empty date in FILE is ignored" {
+    run -0 datediff --file - <<'EOF'
+	no date here
+2026-04-20 09:59:59
+	neither here
+	empty as well
+2026-04-21 10:10:10
+EOF
+    assert_output - <<'EOF'
+	no date here
+1 second ago
+	neither here
+	empty as well
+in 1450 minutes = 24.2 hours = 1 day = 0.1 weeks
+EOF
+}
+
+@test "compare diff with empty date in FILE is ignored" {
+    run -0 datediff --file - -lt 1h <<'EOF'
+	no date here
+2026-04-20 09:59:59
+	neither here
+	empty as well
+2026-04-20 10:10:10
+EOF
+    assert_output ''
+
+    run -1 datediff --file - -lt 1h <<'EOF'
+	no date here
+2026-04-20 09:59:59
+	neither here
+	empty as well
+2026-04-20 11:00:00
+EOF
+    assert_output ''
+}

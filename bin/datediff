@@ -73,8 +73,9 @@ whereas "-le 1d" would yield true as long as the actual difference is within
     --suffix SUFFIX	Append SUFFIX at the end.
     --file|-f FILE	Read DATE(s) / TIME(s) (one per line, possibly followed
 			by tab-separated other content, which is taken over to
-			the output) from FILE. These are then each compared to
-			now / the passed DATE / TIME.
+			the output; empty DATE / TIME is tolerated) from FILE.
+			These are then each compared to now / the passed DATE /
+			TIME.
 
 EXIT STATUS:
     0	Complete success.
@@ -402,9 +403,20 @@ diffOneDate()
 
 diffInput()
 {
-    local dateOrTime addendum status
-    while IFS=$'\t' read -r dateOrTime addendum || [ -n "$dateOrTime" ]
+    local line dateOrTime addendum status
+    while IFS=$'\n' read -r line || [ -n "$line" ]
     do
+	dateOrTime="${line%%$'\t'*}"
+	addendum="${line#"$dateOrTime"}"; addendum="${addendum#$'\t'}"
+	if [ -z "$dateOrTime" ]; then
+	    if { [ -z "$spanCompareOp" ] && [ -z "$formatCompareOp" ]; } || [ -n "$outputFormat" ]; then
+		[ -n "$addendum" ] \
+		    && printf '\t%s\n' "$addendum" \
+		    || echo
+	    fi
+	    continue
+	fi
+
 	diffOneDate "$@" "$dateOrTime" && : ${status:=0} || { exitStatus=$?; if [ $exitStatus -gt ${status:-0} ]; then status=$exitStatus; fi; }
     done
     return ${status:-99}
