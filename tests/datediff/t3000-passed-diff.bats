@@ -20,7 +20,7 @@ load fixture
 
     for seconds in "${!data[@]}"
     do
-	run -0 datediff --seconds "$seconds" || fail "$seconds" \
+	run -0 datediff --seconds "$seconds" \
 	    && assert_output "${data["$seconds"]}" \
 	    || fail "$seconds"
     done
@@ -43,7 +43,7 @@ load fixture
 
     for days in "${!data[@]}"
     do
-	run -0 datediff --days "$days" || fail "$days" \
+	run -0 datediff --days "$days" \
 	    && assert_output "${data["$days"]}" \
 	    || fail "$days"
     done
@@ -58,7 +58,7 @@ load fixture
 
     for seconds in "${!data[@]}"
     do
-	run -0 datediff --absolute --seconds "$seconds" || fail "$seconds" \
+	run -0 datediff --absolute --seconds "$seconds" \
 	    && assert_output "${data["$seconds"]}" \
 	    || fail "$seconds"
     done
@@ -77,7 +77,7 @@ load fixture
 
     for days in "${!data[@]}"
     do
-	run -0 datediff --absolute --days "$days" || fail "$days" \
+	run -0 datediff --absolute --days "$days" \
 	    && assert_output "${data["$days"]}" \
 	    || fail "$days"
     done
@@ -92,7 +92,7 @@ load fixture
 
     for seconds in "${!data[@]}"
     do
-	run -0 datediff --no-direction --seconds "$seconds" || fail "$seconds" \
+	run -0 datediff --no-direction --seconds "$seconds" \
 	    && assert_output "${data["$seconds"]}" \
 	    || fail "$seconds"
     done
@@ -111,7 +111,7 @@ load fixture
 
     for days in "${!data[@]}"
     do
-	run -0 datediff --no-direction --days "$days" || fail "$days" \
+	run -0 datediff --no-direction --days "$days" \
 	    && assert_output "${data["$days"]}" \
 	    || fail "$days"
     done
