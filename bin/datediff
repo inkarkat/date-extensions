@@ -155,6 +155,30 @@ do
 	*)		break;;
     esac
 done
+if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
+    if [ "$hasDifference" ]; then
+	echo 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
+	echo
+	printUsage "$0"
+	exit 2
+    elif [ $# -lt 1 -o $# -gt 2 ]; then
+	printUsage "$0"
+	exit 2
+    fi
+elif [ -n "$secondsDiff" ]; then
+    if [ $# -gt 0 ]; then
+	printUsage "$0"
+	exit 2
+    fi
+elif [ -n "$daysDiff" ]; then
+    if [ $# -gt 0 ]; then
+	printUsage "$0"
+	exit 2
+    fi
+elif [ $# -lt 1 -o $# -gt 2 ]; then
+    printUsage "$0"
+    exit 2
+fi >&2
 
 [ -n "$NOW" ] \
     && getNow() { printf %s "$NOW"; } \
@@ -223,16 +247,6 @@ sigil=
 typeset -a diffInUnits=()
 status=0
 if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
-    if [ "$hasDifference" ]; then
-	echo 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
-	echo
-	printUsage "$0"
-	exit 2
-    elif [ $# -lt 1 -o $# -gt 2 ]; then
-	printUsage "$0"
-	exit 2
-    fi >&2
-
     parseDates "$@" || exit $?
     if \
 	if [ -n "$formatCompareOp" ]; then
@@ -254,16 +268,8 @@ if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
 	status=1
     fi
 elif [ -n "$secondsDiff" ]; then
-    if [ $# -gt 0 ]; then
-	printUsage "$0" >&2
-	exit 2
-    fi
+    :
 elif [ -n "$daysDiff" ]; then
-    if [ $# -gt 0 ]; then
-	printUsage "$0" >&2
-	exit 2
-    fi
-
     if [ "$isAbsolute" ]; then
 	daysDiff=$((daysDiff < 0 ? -daysDiff : daysDiff))
     elif [ "$isDirection" ]; then
@@ -281,11 +287,6 @@ elif [ -n "$daysDiff" ]; then
 	diffInUnits+=('0 days')
     fi
 else
-    if [ $# -lt 1 -o $# -gt 2 ]; then
-	printUsage "$0" >&2
-	exit 2
-    fi
-
     parseDates "$@" || exit $?
     secondsDiff=$((d2 - d1))
     [ $# -eq 1 ] || isDirection=    # Disable direction if two dates are given.
