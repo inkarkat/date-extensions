@@ -240,144 +240,148 @@ printOne()
     printf '%s%s%s\n' "$prefixAndDirectionPrefix" "${1:?}" "$suffixAndDirectionSuffix"
 }
 
-
-directionPrefix=
-directionSuffix=
-sigil=
-typeset -a diffInUnits=()
-status=0
-if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
-    parseDates "$@" || exit $?
-    if \
-	if [ -n "$formatCompareOp" ]; then
-	    [ "$d1" $formatCompareOp "$d2" ]
+diffOneDate()
+{
+    local directionPrefix=
+    local directionSuffix=
+    local sigil=
+    typeset -a diffInUnits=()
+    local status=0
+    if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
+	parseDates "$@" || return $?
+	if \
+	    if [ -n "$formatCompareOp" ]; then
+		[ "$d1" $formatCompareOp "$d2" ]
+	    else
+		local secondsDiff=$((d2 - d1))
+		[ "$isAbsolute" ] \
+		    && secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
+		[ $secondsDiff ${spanCompareOp:?} $age ]
+	    fi
+	then
+	    return 0
 	else
-	    secondsDiff=$((d2 - d1))
-	    [ "$isAbsolute" ] \
-		&& secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
-	    [ $secondsDiff ${spanCompareOp:?} $age ]
+	    [ -n "$outputFormat" ] || return 1
+	    if [ -n "$formatCompareOp" ]; then
+		timeformat='%s' parseDates "$@"
+		local secondsDiff=$((d2 - d1))
+	    fi
+	    status=1
 	fi
-    then
-	exit 0
-    else
-	[ -n "$outputFormat" ] || exit 1
-	if [ -n "$formatCompareOp" ]; then
-	    timeformat='%s' parseDates "$@"
-	    secondsDiff=$((d2 - d1))
+    elif [ -n "$secondsDiff" ]; then
+	:
+    elif [ -n "$daysDiff" ]; then
+	if [ "$isAbsolute" ]; then
+	    daysDiff=$((daysDiff < 0 ? -daysDiff : daysDiff))
+	elif [ "$isDirection" ]; then
+	    if [ $daysDiff -eq 0 ]; then
+		diffInUnits+=('today')
+	    elif [ $daysDiff -gt 0 ]; then
+		directionPrefix='in '
+	    else
+		daysDiff=$((-daysDiff))
+		sigil='-'
+		directionSuffix=' ago'
+	    fi
 	fi
-	status=1
-    fi
-elif [ -n "$secondsDiff" ]; then
-    :
-elif [ -n "$daysDiff" ]; then
-    if [ "$isAbsolute" ]; then
-	daysDiff=$((daysDiff < 0 ? -daysDiff : daysDiff))
-    elif [ "$isDirection" ]; then
 	if [ $daysDiff -eq 0 ]; then
-	    diffInUnits+=('today')
-	elif [ $daysDiff -gt 0 ]; then
-	    directionPrefix='in '
-	else
-	    daysDiff=$((-daysDiff))
-	    sigil='-'
-	    directionSuffix=' ago'
+	    diffInUnits+=('0 days')
 	fi
-    fi
-    if [ $daysDiff -eq 0 ]; then
-	diffInUnits+=('0 days')
-    fi
-else
-    parseDates "$@" || exit $?
-    secondsDiff=$((d2 - d1))
-    [ $# -eq 1 ] || isDirection=    # Disable direction if two dates are given.
-fi
-if [ -n "$secondsDiff" ]; then
-    if [ "$isAbsolute" ]; then
-	secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
-    elif [ "$isDirection" ]; then
-	if [ $secondsDiff -eq 0 ]; then
-	    diffInUnits+=('just now')
-	elif [ $secondsDiff -gt 0 ]; then
-	    directionPrefix='in '
-	else
-	    secondsDiff=$((-secondsDiff))
-	    sigil='-'
-	    directionSuffix=' ago'
-	fi
-    fi
-fi
-if [ -z "$daysDiff" ]; then
-    [ "${secondsDiff:0:1}" = '-' ] \
-	&& daysDiff=-$(( (${secondsDiff#-} + 43200) / 86400 )) \
-	|| daysDiff=$(( (secondsDiff + 43200) / 86400 ))
-fi
-if [ -z "$secondsDiff" ] && [ "$isDirection" ] && [ ! "$isAbsolute" ] && [ $daysDiff -eq 1 ]; then
-    if [ "$sigil" = - ]; then
-	diffInUnits+=('yesterday' '1 day ago')
-	directionSuffix=''
-	daysDiff=
     else
-	diffInUnits+=('tomorrow' 'in 1 day')
-	directionPrefix=''
-	daysDiff=
+	parseDates "$@" || return $?
+	local secondsDiff=$((d2 - d1))
+	[ $# -eq 1 ] || isDirection=    # Disable direction if two dates are given.
     fi
-fi
-prefixAndDirectionPrefix="${prefix}${directionPrefix}"
-suffixAndDirectionSuffix="${directionSuffix}${suffix}"
+    if [ -n "$secondsDiff" ]; then
+	if [ "$isAbsolute" ]; then
+	    secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
+	elif [ "$isDirection" ]; then
+	    if [ $secondsDiff -eq 0 ]; then
+		diffInUnits+=('just now')
+	    elif [ $secondsDiff -gt 0 ]; then
+		directionPrefix='in '
+	    else
+		secondsDiff=$((-secondsDiff))
+		sigil='-'
+		directionSuffix=' ago'
+	    fi
+	fi
+    fi
+    if [ -z "$daysDiff" ]; then
+	[ "${secondsDiff:0:1}" = '-' ] \
+	    && local daysDiff=-$(( (${secondsDiff#-} + 43200) / 86400 )) \
+	    || local daysDiff=$(( (secondsDiff + 43200) / 86400 ))
+    fi
+    if [ -z "$secondsDiff" ] && [ "$isDirection" ] && [ ! "$isAbsolute" ] && [ $daysDiff -eq 1 ]; then
+	if [ "$sigil" = - ]; then
+	    diffInUnits+=('yesterday' '1 day ago')
+	    directionSuffix=''
+	    local daysDiff=
+	else
+	    diffInUnits+=('tomorrow' 'in 1 day')
+	    directionPrefix=''
+	    local daysDiff=
+	fi
+    fi
+    local prefixAndDirectionPrefix="${prefix}${directionPrefix}"
+    local suffixAndDirectionSuffix="${directionSuffix}${suffix}"
 
-addDiffUnit   "$secondsDiff" second
-calculateUnit "$secondsDiff" minute 60
-calculateUnit "$secondsDiff" hour 3600
-calculateUnit "$secondsDiff" day 86400
-[ -z "$secondsDiff" ] && calculateUnit "$daysDiff"    day 1
-calculateUnit "$daysDiff"    week 7
-calculateUnit "$daysDiff"    month 30
-calculateUnit "$daysDiff"    year 365
-calculateUnit "$daysDiff"    generation 9131
+    addDiffUnit   "$secondsDiff" second
+    calculateUnit "$secondsDiff" minute 60
+    calculateUnit "$secondsDiff" hour 3600
+    calculateUnit "$secondsDiff" day 86400
+    [ -z "$secondsDiff" ] && calculateUnit "$daysDiff"    day 1
+    calculateUnit "$daysDiff"    week 7
+    calculateUnit "$daysDiff"    month 30
+    calculateUnit "$daysDiff"    year 365
+    calculateUnit "$daysDiff"    generation 9131
 
-case "$outputFormat" in
-    '')		    joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
+    case "$outputFormat" in
+	'')		joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
 
-    s?(econd?(s)))  printSingleUnit ${sigil}${secondsDiff};;
-    m?(inute?(s)))  printCalculated ${sigil}${secondsDiff} 60;;
-    h?(our?(s)))    printCalculated ${sigil}${secondsDiff} 3600;;
-    d?(ay?(s)))	    printSingleUnit ${sigil}${daysDiff};;
-    w?(eek?(s)))    printCalculated ${sigil}${daysDiff} 7;;
-    mo?(nth?(s)))   printCalculated ${sigil}${daysDiff} 30;;
-    y?(ear?(s)))    printCalculated ${sigil}${daysDiff} 365;;
-    g?(eneration?(s)))
-		    printCalculated ${sigil}${daysDiff} 9131;;
+	s?(econd?(s)))  printSingleUnit ${sigil}${secondsDiff};;
+	m?(inute?(s)))  printCalculated ${sigil}${secondsDiff} 60;;
+	h?(our?(s)))    printCalculated ${sigil}${secondsDiff} 3600;;
+	d?(ay?(s)))	printSingleUnit ${sigil}${daysDiff};;
+	w?(eek?(s)))    printCalculated ${sigil}${daysDiff} 7;;
+	mo?(nth?(s)))   printCalculated ${sigil}${daysDiff} 30;;
+	y?(ear?(s)))    printCalculated ${sigil}${daysDiff} 365;;
+	g?(eneration?(s)))
+			printCalculated ${sigil}${daysDiff} 9131;;
 
-    whole-units)    # Choose all units that are not just a fraction; i.e. do not start with 0.
-		    typeset -a wholeUnits=()
-		    for unit in "${diffInUnits[@]}"
-		    do
-			[ "${unit:0:1}" = 0 -o "${unit:0:2}" = -0 ] || wholeUnits+=("$unit")
-		    done
-		    if [ ${#wholeUnits[@]} -eq 0 ]; then
-			printOne "${diffInUnits[-1]}"
-		    else
-			joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${wholeUnits[@]}"
-		    fi
-		    ;;
-    smallest-unit)  printOne "${diffInUnits[0]}";;
-    largest-unit)   printOne "${diffInUnits[-1]}";;
-    best-unit)	    # Choose the largest one that is not just a fraction; i.e. does not start with 0.
-		    for ((i = $((${#diffInUnits[@]} - 1)); i >= 0; i--))
-		    do
-			best="${diffInUnits[i]}"
-			[ "${best:0:1}" = 0 -o "${best:0:2}" = -0 ] || break
-		    done
-		    printOne "$best"
-		    ;;
-    textform)	    alternatives=()
-		    for d in "${diffInUnits[@]}"
-		    do
-			alternatives+=("${directionPrefix}${d}${directionSuffix}")
-		    done
-		    [ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ${directionPrefix:+--prefix "$directionPrefix"} ${directionSuffix:+--suffix "$directionSuffix"} ' = ' "${diffInUnits[@]}")")
-		    joinBy --prefix "${prefix}[" --suffix "]${suffix}" '|' "${alternatives[@]}"
-		    ;;
-    *)		    printf >&2 'ERROR: Invalid output format: %s\n' "$outputFormat"; exit 2;;
-esac
-exit $status
+	whole-units)    # Choose all units that are not just a fraction; i.e. do not start with 0.
+			typeset -a wholeUnits=()
+			for unit in "${diffInUnits[@]}"
+			do
+			    [ "${unit:0:1}" = 0 -o "${unit:0:2}" = -0 ] || wholeUnits+=("$unit")
+			done
+			if [ ${#wholeUnits[@]} -eq 0 ]; then
+			    printOne "${diffInUnits[-1]}"
+			else
+			    joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${wholeUnits[@]}"
+			fi
+			;;
+	smallest-unit)  printOne "${diffInUnits[0]}";;
+	largest-unit)   printOne "${diffInUnits[-1]}";;
+	best-unit)	# Choose the largest one that is not just a fraction; i.e. does not start with 0.
+			for ((i = $((${#diffInUnits[@]} - 1)); i >= 0; i--))
+			do
+			    best="${diffInUnits[i]}"
+			    [ "${best:0:1}" = 0 -o "${best:0:2}" = -0 ] || break
+			done
+			printOne "$best"
+			;;
+	textform)	alternatives=()
+			for d in "${diffInUnits[@]}"
+			do
+			    alternatives+=("${directionPrefix}${d}${directionSuffix}")
+			done
+			[ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ${directionPrefix:+--prefix "$directionPrefix"} ${directionSuffix:+--suffix "$directionSuffix"} ' = ' "${diffInUnits[@]}")")
+			joinBy --prefix "${prefix}[" --suffix "]${suffix}" '|' "${alternatives[@]}"
+			;;
+	*)		printf >&2 'ERROR: Invalid output format: %s\n' "$outputFormat"; exit 2;;
+    esac
+    return $status
+}
+
+diffOneDate "$@"
