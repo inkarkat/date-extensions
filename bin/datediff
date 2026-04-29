@@ -81,6 +81,7 @@ EXIT STATUS:
     1	The comparison failed; at least one DATE / TIME did not pass it.
     2	Bad invocation, wrong or missing command-line arguments.
     4	Invalid DATE(s) / TIME(s) passed.
+    5	A FILE could not be read.
 HELPTEXT
 }
 
@@ -413,6 +414,8 @@ if [ ${#filespecs[@]} -gt 0 ]; then
     else
 	cat -- "${filespecs[@]}" \
 	    | diffInput "$@"
+	typeset -a states=("${PIPESTATUS[@]}")
+	[ ${states[0]} -ne 0 ] && exit 5 || exit ${states[1]}
     fi
 else
     diffOneDate "$@"

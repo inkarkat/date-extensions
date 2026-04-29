@@ -3,7 +3,7 @@
 load fixture
 
 @test "non-existing FILE" {
-    LC_MESSAGES=C run -1 datediff --file doesNotExist
+    LC_MESSAGES=C run -5 datediff --file doesNotExist
     assert_output 'cat: doesNotExist: No such file or directory'
 }
 
