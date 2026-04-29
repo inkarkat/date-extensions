@@ -398,11 +398,22 @@ diffOneDate()
     return $status
 }
 
-if [ ${#filespecs[@]} -gt 0 ]; then
-    cat -- "${filespecs[@]}" | while IFS=$'\t' read -r dateOrTime addendum || [ -n "$dateOrTime" ]
+diffInput()
+{
+    local dateOrTime addendum
+    while IFS=$'\t' read -r dateOrTime addendum || [ -n "$dateOrTime" ]
     do
 	diffOneDate "$@" "$dateOrTime"
     done
+}
+
+if [ ${#filespecs[@]} -gt 0 ]; then
+    if [ "${filespecs[*]}" = '-' ]; then
+	diffInput "$@"
+    else
+	cat -- "${filespecs[@]}" \
+	    | diffInput "$@"
+    fi
 else
     diffOneDate "$@"
 fi
