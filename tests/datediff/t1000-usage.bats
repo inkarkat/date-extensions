@@ -27,3 +27,8 @@ load fixture
     run -2 datediff 2026-04-20 2026-04-21 2026-04-22
     assert_line -n 0 -e '^Usage:'
 }
+
+@test "two DATEs and --file prints usage" {
+    run -2 datediff --file - 2026-04-20 2026-04-21
+    assert_line -n 0 -e '^Usage:'
+}
