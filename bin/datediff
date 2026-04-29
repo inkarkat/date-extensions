@@ -168,6 +168,48 @@ parseDates()
     fi || return 4
 }
 
+addDiffUnit()
+{
+    local diff="$1"; shift
+    local unit="$1"; shift
+
+    [ -n "$diff" ] || return
+    [ "$diff" = 0 -a "$unit" != second ] && return	# Skip values that are zero, but keep at least "0 seconds" as the pathological corner case.
+    local flooredDiff="${diff%.*}"; flooredDiff=${flooredDiff#-}
+    [ ${#flooredDiff} -gt 4 ] && return	# Skip values that are too large (>9999).
+
+    local unitPlural='s'
+    [ "${diff#-}" = '1' ] && unitPlural=
+
+    diffInUnits+=("$diff ${unit}${unitPlural}")
+}
+calculateUnit()
+{
+    local diff=$1; shift
+    local unit=$1; shift
+    local divisor=$1; shift
+    local unitDiff=$(divround $((100 * diff / divisor)))
+    [ -n "$diff" ] || return
+    addDiffUnit "$unitDiff" "$unit"
+}
+printCalculated()
+{
+    local diff=$1; shift
+    local divisor=$1; shift
+    local unitDiff=$(divround $((100 * diff / divisor)))
+    local flooredDiff="${unitDiff%.*}"
+    printf '%s%d%s\n' "$prefix" $flooredDiff "$suffix"
+}
+printSingleUnit()
+{
+    printf '%s%d%s\n' "$prefix" "${1:?}" "$suffix"
+}
+printOne()
+{
+    printf '%s%s%s\n' "$prefixAndDirectionPrefix" "${1:?}" "$suffixAndDirectionSuffix"
+}
+
+
 directionPrefix=
 directionSuffix=
 sigil=
@@ -274,47 +316,6 @@ if [ -z "$secondsDiff" ] && [ "$isDirection" ] && [ ! "$isAbsolute" ] && [ $days
 fi
 prefixAndDirectionPrefix="${prefix}${directionPrefix}"
 suffixAndDirectionSuffix="${directionSuffix}${suffix}"
-
-addDiffUnit()
-{
-    local diff="$1"; shift
-    local unit="$1"; shift
-
-    [ -n "$diff" ] || return
-    [ "$diff" = 0 -a "$unit" != second ] && return	# Skip values that are zero, but keep at least "0 seconds" as the pathological corner case.
-    local flooredDiff="${diff%.*}"; flooredDiff=${flooredDiff#-}
-    [ ${#flooredDiff} -gt 4 ] && return	# Skip values that are too large (>9999).
-
-    local unitPlural='s'
-    [ "${diff#-}" = '1' ] && unitPlural=
-
-    diffInUnits+=("$diff ${unit}${unitPlural}")
-}
-calculateUnit()
-{
-    local diff=$1; shift
-    local unit=$1; shift
-    local divisor=$1; shift
-    local unitDiff=$(divround $((100 * diff / divisor)))
-    [ -n "$diff" ] || return
-    addDiffUnit "$unitDiff" "$unit"
-}
-printCalculated()
-{
-    local diff=$1; shift
-    local divisor=$1; shift
-    local unitDiff=$(divround $((100 * diff / divisor)))
-    local flooredDiff="${unitDiff%.*}"
-    printf '%s%d%s\n' "$prefix" $flooredDiff "$suffix"
-}
-printSingleUnit()
-{
-    printf '%s%d%s\n' "$prefix" "${1:?}" "$suffix"
-}
-printOne()
-{
-    printf '%s%s%s\n' "$prefixAndDirectionPrefix" "${1:?}" "$suffixAndDirectionSuffix"
-}
 
 addDiffUnit   "$secondsDiff" second
 calculateUnit "$secondsDiff" minute 60
