@@ -156,11 +156,18 @@ do
     esac
 done
 
-: ${NOW:=$(printf '%(%s)T' -1)}
+[ -n "$NOW" ] \
+    && getNow() { printf %s "$NOW"; } \
+    || getNow() { printf '%(%s)T' -1; }
+
 parseDates()
 {
     if [ $# -eq 1 ]; then
-	d1=$("$DATE" "${dateArgs[@]}" --date="@$NOW" "+${timeformat:?}") \
+	if [ "$timeformat" = '%s' ]; then
+	    d1=$(getNow)
+	else
+	    d1=$("$DATE" "${dateArgs[@]}" --date="@$(getNow)" "+${timeformat:?}")
+	fi \
 	    && d2=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}")
     else
 	d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") \
