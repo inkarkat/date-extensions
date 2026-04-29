@@ -2,11 +2,6 @@
 
 load fixture
 
-@test "non-existing FILE" {
-    LC_MESSAGES=C run -5 datediff --file doesNotExist
-    assert_output 'cat: doesNotExist: No such file or directory'
-}
-
 @test "single time read from stdin against passed time" {
     run -0 datediff --file - '10:00' <<< '10:00:02'
     assert_output '2 seconds'

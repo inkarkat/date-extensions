@@ -82,6 +82,7 @@ EXIT STATUS:
     2	Bad invocation, wrong or missing command-line arguments.
     4	Invalid DATE(s) / TIME(s) passed.
     5	A FILE could not be read.
+    99	Empty input; no DATE / TIME could be read.
 HELPTEXT
 }
 
@@ -401,11 +402,12 @@ diffOneDate()
 
 diffInput()
 {
-    local dateOrTime addendum
+    local dateOrTime addendum status
     while IFS=$'\t' read -r dateOrTime addendum || [ -n "$dateOrTime" ]
     do
-	diffOneDate "$@" "$dateOrTime"
+	diffOneDate "$@" "$dateOrTime" && : ${status:=0} || { exitStatus=$?; if [ $exitStatus -gt ${status:-0} ]; then status=$exitStatus; fi; }
     done
+    return ${status:-99}
 }
 
 if [ ${#filespecs[@]} -gt 0 ]; then
