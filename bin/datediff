@@ -6,11 +6,19 @@ shopt -qs extglob
 
 : ${DATE:=date}
 
+readonly generalArgs='[-u|--utc|--universal]'
 readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|textform'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
+readonly newerOlderArgs='--newer|--older [-]AGE[SUFFIX]'
+readonly comparisonArgs='-lt|-le|-eq|-ne|-ge|-gt [-]AGE[SUFFIX] [-a|--absolute]'
+readonly timeslotArgs='-w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear]'
+getShortUsage()
+{
+    printf %s "$generalArgs [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [--no-direction] [${newerOlderArgs}|${comparisonArgs}|${timeslotArgs}]"
+}
 printShortUsage()
 {
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-u|--utc|--universal] [-?|-h|--help] ...'
+    printf 'Usage: %q %s\n' "$(basename "$1")" "$generalArgs [-?|-h|--help] ..."
     echo
     cat <<HELPDESCRIPTION
 Calculate difference between two DATEs or TIMEs / the passed DATE or TIME and
@@ -42,15 +50,15 @@ SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '... --newer|--older [-]AGE[SUFFIX] -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'
-    printf 'Usage: %q %s\n' "$(basename "$1")" '... -lt|-le|-eq|-ne|-ge|-gt [-]AGE[SUFFIX] [-a|--absolute] -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... $newerOlderArgs -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... $comparisonArgs -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]"
     echo
     cat <<HELPDESCRIPTION
 Test whether the difference falls inside / outside TIMESLOT. TIMESLOT can be one
 of second|minute|hour|day|week|month|year.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '... -w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... $timeslotArgs -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]"
 }
 printUsage()
 {
@@ -153,33 +161,47 @@ spanCompareOp=
 formatCompareOp=
 typeset -a filespecs=()
 dateArgOffset=1
+option() { :; }
+parameter() { :; }
+endOfOptionsAndParameters() { :; }
+noUnderstand() { :; }
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--get-short-usage)
+			shift; getShortUsage; exit 0;;
+	--understands)	shift
+			option() { printf 1; exit 0; }
+			parameter() { printf 2; exit 0; }
+			endOfOptionsAndParameters() { exit 99; }
+			noUnderstand() { exit 1; }
+			;;
+
 	--universal|--utc|-u)
-			dateArgs+=("$1"); shift;;
-	--absolute|-a)	isAbsolute=t; shift;;
-	--no-direction)	isDirection=; shift;;
-	--output|-o)	shift; outputFormat="$1"; shift;;
-	--prefix)	shift; prefix+="${1?}"; shift;;
-	--suffix)	shift; suffix+="${1?}"; shift;;
+			dateArgs+=("$1"); shift; option;;
+	--absolute|-a)	isAbsolute=t; shift; option;;
+	--no-direction)	isDirection=; shift; option;;
+	--output|-o)	shift; outputFormat="$1"; shift; parameter;;
+	--prefix)	shift; prefix+="${1?}"; shift; parameter;;
+	--suffix)	shift; suffix+="${1?}"; shift; parameter;;
 
-	--seconds|-s)	shift; ensureSingleDifference; secondsDiff="${1:?}"; shift; hasDifference=t;;
-	--days|-d)	shift; ensureSingleDifference; daysDiff="${1:?}"; shift; hasDifference=t;;
+	--seconds|-s)	shift; ensureSingleDifference; secondsDiff="${1:?}"; shift; hasDifference=t; parameter;;
+	--days|-d)	shift; ensureSingleDifference; daysDiff="${1:?}"; shift; hasDifference=t; parameter;;
 
-	--newer)	shift; parseAge t "${1:?}"; shift; spanCompareOp=-gt;;
-	--older)	shift; parseAge t "${1:?}"; shift; spanCompareOp=-lt;;
+	--newer)	shift; parseAge t "${1:?}"; shift; spanCompareOp=-gt; parameter;;
+	--older)	shift; parseAge t "${1:?}"; shift; spanCompareOp=-lt; parameter;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; parseAge '' "${1:?}"; shift;;
-	--within|-w)	shift; parseTimeslot "${1:?}"; formatCompareOp='='; shift;;
-	--outside|-W)	shift; parseTimeslot "${1:?}"; formatCompareOp='!='; shift;;
+			spanCompareOp="$1"; shift; parseAge '' "${1:?}"; shift; parameter;;
+	--within|-w)	shift; parseTimeslot "${1:?}"; formatCompareOp='='; shift; parameter;;
+	--outside|-W)	shift; parseTimeslot "${1:?}"; formatCompareOp='!='; shift; parameter;;
 
-	--file|-f)	shift; filespecs+=("${1:?}"); shift; dateArgOffset=0;;
-	--file=*)	filespecs+=("${1#--file=}"); shift; dateArgOffset=0;;
-	--)		[ "$hasDifference" ] || shift; break;;
-	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
-	*)		break;;
+	--file|-f)	shift; filespecs+=("${1:?}"); shift; dateArgOffset=0; parameter;;
+	--file=*)	filespecs+=("${1#--file=}"); shift; dateArgOffset=0; option;;
+
+	--)		endOfOptionsAndParameters; [ "$hasDifference" ] || shift; break;;
+	-*)		noUnderstand; { echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		endOfOptionsAndParameters; break;;
     esac
 done
 if [ "$hasDifference" ] && [ ${#filespecs[@]} -gt 0 ]; then
