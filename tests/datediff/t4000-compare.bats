@@ -8,7 +8,7 @@ load fixture
 	run datediff $cmpOp "$age" "$datetime" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$datetime - $NOW_DATE $cmpOp $age"
+	    || fail "$cmpOp $age ${datetime@Q} ${NOW_DATE@Q}"
     done <<-EOF
 $NOW_DATE	-eq	0	0
 $NOW_DATE	-ne	0	1
@@ -54,7 +54,7 @@ EOF
 	run datediff $cmpOp "$age" "$datetime1" "$datetime2" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$datetime1 - $datetime2 $cmpOp $age"
+	    || fail "$cmpOp $age ${datetime1@Q} ${datetime2@Q}"
     done <<-EOF
 $NOW_DATE	$NOW_DATE	-eq	0	0
 $NOW_DATE	$NOW_DATE	-ne	0	1
@@ -100,7 +100,7 @@ EOF
 	run datediff --absolute $cmpOp "$age" "$datetime1" "$datetime2" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$datetime1 - $datetime2 $cmpOp $age"
+	    || fail "$cmpOp $age ${datetime1@Q} ${datetime2@Q}"
     done <<-EOF
 $NOW_DATE	2026-04-20 09:59:59	-eq	0s	1
 $NOW_DATE	2026-04-20 09:59:59	-eq	-1s	1

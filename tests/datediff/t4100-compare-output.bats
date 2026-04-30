@@ -7,7 +7,7 @@ load fixture
     do
 	run -0 datediff --output best-unit $cmpOp "$age" "$datetime" \
 	    && assert_output '' \
-	    || fail "$datetime - $NOW_DATE $cmpOp $age"
+	    || fail "$cmpOp $age ${datetime@Q} ${NOW_DATE@Q}"
     done <<-EOF
 $NOW_DATE	-eq	0
 $NOW_DATE	-le	0
@@ -33,7 +33,7 @@ EOF
     do
 	run -1 datediff --output best-unit $cmpOp "$age" "$datetime" \
 	    && assert_output "$expectedOutput" \
-	    || fail "$datetime - $NOW_DATE $cmpOp $age"
+	    || fail "$cmpOp $age ${datetime@Q} ${NOW_DATE@Q}"
     done <<-EOF
 $NOW_DATE	-ne	0	just now
 $NOW_DATE	-gt	0	just now
@@ -58,7 +58,7 @@ EOF
     do
 	run -1 datediff --output whole-units $cmpOp "$age" "$datetime1" "$datetime2" \
 	    && assert_output "$expectedOutput" \
-	    || fail "$datetime1 - $datetime2 $cmpOp $age"
+	    || fail "$cmpOp $age ${datetime1@Q} ${datetime2@Q}"
     done <<-EOF
 $NOW_DATE	$NOW_DATE	-ne	0	just now
 $NOW_DATE	$NOW_DATE	-gt	0	just now

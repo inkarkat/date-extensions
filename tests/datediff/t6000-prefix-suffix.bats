@@ -19,7 +19,7 @@ load fixture
     do
 	run -0 datediff --prefix "$prefix" --suffix "$suffix" --output "$outputFormat" 1976-10-20 \
 	    && assert_output "$expectedOutput" \
-	    || fail "$outputFormat $prefix $suffix"
+	    || fail "--output ${outputFormat@Q} --prefix ${prefix@Q} --suffix ${suffix@Q}"
     done <<-EOF
 seconds	delta(-1562058000) detected
 minutes	delta(-26034300) detected

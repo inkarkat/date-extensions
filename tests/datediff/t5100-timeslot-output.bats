@@ -7,7 +7,7 @@ load fixture
     do
 	run -1 datediff --output seconds $cmpOp "$timeslot" "$datetime" \
 	    && assert_output "$expectedOutput" \
-	    || fail "$datetime, $NOW_DATE $cmpOp $timeslot"
+	    || fail "$cmpOp $timeslot ${datetime@Q} ${NOW_DATE@Q}"
     done <<-EOF
 $NOW_DATE	--outside	second	0
 $NOW_DATE	--outside	day	0
