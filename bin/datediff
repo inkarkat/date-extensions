@@ -216,6 +216,11 @@ parseDates()
     fi || return 4
 }
 
+isOutput()
+{
+    { [ -z "$spanCompareOp" ] && [ -z "$formatCompareOp" ]; } || [ -n "$outputFormat" ]
+}
+
 addDiffUnit()
 {
     local diff="$1"; shift
@@ -278,7 +283,7 @@ diffOneDate()
 	then
 	    return 0
 	else
-	    [ -n "$outputFormat" ] || return 1
+	    isOutput || return 1
 	    if [ -n "$formatCompareOp" ]; then
 		timeformat='%s' parseDates "$@"
 		local secondsDiff=$((d2 - d1))
@@ -409,7 +414,7 @@ diffInput()
 	dateOrTime="${line%%$'\t'*}"
 	addendum="${line#"$dateOrTime"}"; addendum="${addendum#$'\t'}"
 	if [ -z "$dateOrTime" ]; then
-	    if { [ -z "$spanCompareOp" ] && [ -z "$formatCompareOp" ]; } || [ -n "$outputFormat" ]; then
+	    if isOutput; then
 		[ -n "$addendum" ] \
 		    && printf '\t%s\n' "$addendum" \
 		    || echo
