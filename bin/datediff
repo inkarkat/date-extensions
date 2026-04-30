@@ -161,6 +161,7 @@ do
 	--outside|-W)	shift; parseTimeslot "${1:?}"; formatCompareOp='!='; shift;;
 
 	--file|-f)	shift; filespecs+=("${1:?}"); shift; dateArgOffset=0;;
+	--file=*)	filespecs+=("${1#--file=}"); shift; dateArgOffset=0;;
 	--)		[ "$hasDifference" ] || shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
