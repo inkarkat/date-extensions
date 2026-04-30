@@ -12,6 +12,11 @@ load fixture
     assert_output $'1 second ago\twith\taddendum'
 }
 
+@test "single date and addendum read from stdin against now with suffix" {
+    run -0 datediff --suffix ' SUFFIX' --file - <<< $'2026-04-20 09:59:59\twith\taddendum'
+    assert_output $'1 second ago SUFFIX\twith\taddendum'
+}
+
 @test "dates and addenda read from file against passed date" {
     run -0 datediff --file "${BATS_TEST_DIRNAME}/dates-addenda.tsv" '2026-04-20 10:00'
     assert_output - <<'EOF'

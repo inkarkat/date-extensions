@@ -23,6 +23,10 @@ load fixture
     do
 	run -0 datediff --output "$outputFormat" --file - <<<$'1976-10-20\twith\ttext' \
 	    && assert_output "${data["$outputFormat"]}"$'\twith\ttext' \
-	    || fail "$outputFormat"
+	    || fail "$ --output outputFormat"
+
+	run -0 datediff --prefix '(' --suffix ')' --output "$outputFormat" --file - <<<$'1976-10-20\twith\ttext' \
+	    && assert_output "(${data["$outputFormat"]})"$'\twith\ttext' \
+	    || fail "--prefix '(' --suffix ')' --output $outputFormat"
     done
 }

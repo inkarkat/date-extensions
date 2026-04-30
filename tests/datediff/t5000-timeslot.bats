@@ -24,12 +24,12 @@ y year
 	run datediff --within "$timeslot" "$datetime" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$datetime, $NOW_DATE --within $timeslot"
+	    || fail "--within $timeslot ${datetime@Q} ${NOW_DATE@Q}"
 
 	run datediff --outside "$timeslot" "$datetime" \
 	    && assert_equal $status $((expectedStatus ? 0 : 1)) \
 	    && assert_output '' \
-	    || fail "$datetime, $NOW_DATE --outside $timeslot"
+	    || fail "--outside $timeslot ${datetime@Q} ${NOW_DATE@Q}"
     done <<-EOF
 $NOW_DATE	second	0
 $NOW_DATE	day	0
@@ -62,12 +62,12 @@ EOF
 	run datediff --within "$timeslot" "$datetime1" "$datetime2" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$datetime1, $datetime2 --within $timeslot"
+	    || fail "--within $timeslot ${datetime1@Q} ${datetime2@Q}"
 
 	run datediff --outside "$timeslot" "$datetime1" "$datetime2" \
 	    && assert_equal $status $((expectedStatus ? 0 : 1)) \
 	    && assert_output '' \
-	    || fail "$datetime1, $datetime2 --outside $timeslot"
+	    || fail "--outside $timeslot ${datetime1@Q} ${datetime2@Q}"
     done <<-EOF
 2026-04-21 12:32:48	2026-04-21 12:32:48	second	0
 2026-04-21 12:32:48	2026-04-21 12:32:47	second	1

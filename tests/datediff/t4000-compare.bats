@@ -8,7 +8,7 @@ load fixture
 	run datediff $cmpOp "$age" "$datetime" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$datetime - $NOW_DATE $cmpOp $age"
+	    || fail "$cmpOp $age ${datetime@Q} ${NOW_DATE@Q}"
     done <<-EOF
 $NOW_DATE	-eq	0	0
 $NOW_DATE	-ne	0	1
@@ -24,10 +24,14 @@ $NOW_DATE	-ge	0	0
 2026-04-20 10:00:01	-eq	1s	0
 2026-04-20 11:30:00	-eq	5400	0
 2026-04-20 11:30:00	-gt	1h	0
-2026-04-20 11:30:00	--newer	1h	1
+2026-04-20 11:30:00	--newer	1h	0
 2026-04-20 11:30:00	--newer	2h	0
+2026-04-20 11:30:00	--newer	-1h	0
+2026-04-20 11:30:00	--newer	-2h	1
 2026-04-20 11:30:00	--older	2h	1
-2026-04-20 11:30:00	--older	1h	0
+2026-04-20 11:30:00	--older	1h	1
+2026-04-20 11:30:00	--older	-2h	0
+2026-04-20 11:30:00	--older	-1h	1
 2026-04-21 10:00:00	-eq	86400	0
 2026-04-21 10:00:00	-eq	24h	0
 2026-04-21 10:00:00	-eq	1d	0
@@ -50,7 +54,7 @@ EOF
 	run datediff $cmpOp "$age" "$datetime1" "$datetime2" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$datetime1 - $datetime2 $cmpOp $age"
+	    || fail "$cmpOp $age ${datetime1@Q} ${datetime2@Q}"
     done <<-EOF
 $NOW_DATE	$NOW_DATE	-eq	0	0
 $NOW_DATE	$NOW_DATE	-ne	0	1
@@ -66,10 +70,14 @@ $NOW_DATE	2026-04-20 10:00:01	-eq	0s	1
 $NOW_DATE	2026-04-20 10:00:01	-eq	1s	0
 $NOW_DATE	2026-04-20 11:30:00	-eq	5400	0
 $NOW_DATE	2026-04-20 11:30:00	-gt	1h	0
-$NOW_DATE	2026-04-20 11:30:00	--newer	1h	1
+$NOW_DATE	2026-04-20 11:30:00	--newer	1h	0
 $NOW_DATE	2026-04-20 11:30:00	--newer	2h	0
+$NOW_DATE	2026-04-20 11:30:00	--newer	-1h	0
+$NOW_DATE	2026-04-20 11:30:00	--newer	-2h	1
 $NOW_DATE	2026-04-20 11:30:00	--older	2h	1
-$NOW_DATE	2026-04-20 11:30:00	--older	1h	0
+$NOW_DATE	2026-04-20 11:30:00	--older	1h	1
+$NOW_DATE	2026-04-20 11:30:00	--older	-2h	0
+$NOW_DATE	2026-04-20 11:30:00	--older	-1h	1
 $NOW_DATE	2026-04-21 10:00:00	-eq	86400	0
 $NOW_DATE	2026-04-21 10:00:00	-eq	24h	0
 $NOW_DATE	2026-04-21 10:00:00	-eq	1d	0
@@ -92,7 +100,7 @@ EOF
 	run datediff --absolute $cmpOp "$age" "$datetime1" "$datetime2" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$datetime1 - $datetime2 $cmpOp $age"
+	    || fail "$cmpOp $age ${datetime1@Q} ${datetime2@Q}"
     done <<-EOF
 $NOW_DATE	2026-04-20 09:59:59	-eq	0s	1
 $NOW_DATE	2026-04-20 09:59:59	-eq	-1s	1
@@ -103,14 +111,6 @@ $NOW_DATE	2026-04-20 10:00:01	-eq	1s	0
 $NOW_DATE	2026-04-20 11:30:00	-eq	5400	0
 $NOW_DATE	2026-04-20 11:30:00	-gt	1h	0
 2026-04-20 11:30:00	$NOW_DATE	-gt	1h	0
-$NOW_DATE	2026-04-20 11:30:00	--newer	1h	1
-2026-04-20 11:30:00	$NOW_DATE	--newer	1h	1
-$NOW_DATE	2026-04-20 11:30:00	--newer	2h	0
-2026-04-20 11:30:00	$NOW_DATE	--newer	2h	0
-$NOW_DATE	2026-04-20 11:30:00	--older	2h	1
-2026-04-20 11:30:00	$NOW_DATE	--older	2h	1
-$NOW_DATE	2026-04-20 11:30:00	--older	1h	0
-2026-04-20 11:30:00	$NOW_DATE	--older	1h	0
 $NOW_DATE	2026-04-21 10:00:00	-eq	86400	0
 2026-04-21 10:00:00	$NOW_DATE	-eq	86400	0
 $NOW_DATE	2026-04-21 10:00:00	-eq	24h	0
