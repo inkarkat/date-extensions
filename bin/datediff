@@ -30,11 +30,20 @@ HELPDESCRIPTION
     cat <<HELPDESCRIPTION
 Test whether the difference is greater / smaller than AGE. Can be combined with
 -o|--output to print the actual difference if the test fails.
+Note: -lt|-le|-eq|-ne|-ge|-gt are purely mathematical comparisons with the
+difference of DATE|TIME to now / the second passed DATE|TIME to the first.
+--newer|--older instead are (signed) age comparisons; future dates / dates where
+the second passed DATE|TIME is greater than the first are always newer (unless
+-AGE, which asserts that it must be at least AGE in the future) and never older.
+This is different from a comparison with --absolute, which would treat
+(greater / smaller) differences the same regardless of being in the past or
+future.
 SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '... --newer|--older|-lt|-le|-eq|-ne|-ge|-gt AGE[SUFFIX] [-a|--absolute] -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '... --newer|--older [-]AGE[SUFFIX] -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '... -lt|-le|-eq|-ne|-ge|-gt [-]AGE[SUFFIX] [-a|--absolute] -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'
     echo
     cat <<HELPDESCRIPTION
 Test whether the difference falls inside / outside TIMESLOT. TIMESLOT can be one
@@ -74,8 +83,8 @@ whereas "-le 1d" would yield true as long as the actual difference is within
     --file|-f FILE	Read DATE(s) / TIME(s) (one per line, possibly followed
 			by tab-separated other content, which is taken over to
 			the output; empty DATE / TIME is tolerated) from FILE.
-			These are then each compared to now / the passed DATE /
-			TIME.
+			These are then each compared to now / (as the second
+			date to) the passed DATE / TIME (being the first).
 
 EXIT STATUS:
     0	Complete success.
@@ -96,9 +105,11 @@ ensureSingleDifference()
     exit 2
 }
 
+isNegated=
 parseAge()
 {
-    case "$1" in
+    local isNegate="${1?}"; shift
+    case "${1?}" in
 	?(-)+([0-9])?(s))		    age="${1%s}";;
 	?(-)+([0-9])m)			    age=$((${1%m} * 60));;
 	?(-)+([0-9])h)			    age=$((${1%h} * 3600));;
@@ -109,6 +120,10 @@ parseAge()
 	?(-)+([0-9])g)			    age=$((${1%g} * 86400 * 9131));;
 	*)				    printf >&2 'ERROR: Invalid AGE: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2;;
     esac
+    if [ "$isNegate" ]; then
+	let age=-age
+	isNegated=t
+    fi
 }
 timeformat='%s'
 parseTimeslot()
@@ -153,10 +168,10 @@ do
 	--seconds|-s)	shift; ensureSingleDifference; secondsDiff="${1:?}"; shift; hasDifference=t;;
 	--days|-d)	shift; ensureSingleDifference; daysDiff="${1:?}"; shift; hasDifference=t;;
 
-	--newer)	shift; parseAge "${1:?}"; shift; spanCompareOp=-lt;;
-	--older)	shift; parseAge "${1:?}"; shift; spanCompareOp=-gt;;
+	--newer)	shift; parseAge t "${1:?}"; shift; spanCompareOp=-gt;;
+	--older)	shift; parseAge t "${1:?}"; shift; spanCompareOp=-lt;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; parseAge "${1:?}"; shift;;
+			spanCompareOp="$1"; shift; parseAge '' "${1:?}"; shift;;
 	--within|-w)	shift; parseTimeslot "${1:?}"; formatCompareOp='='; shift;;
 	--outside|-W)	shift; parseTimeslot "${1:?}"; formatCompareOp='!='; shift;;
 
@@ -169,6 +184,11 @@ do
 done
 if [ "$hasDifference" ] && [ ${#filespecs[@]} -gt 0 ]; then
     echo 'ERROR: Cannot combine -s|--seconds|-d|--days with -f|--file.'
+    echo
+    printUsage "$0"
+    exit 2
+elif [ "$isNegated" ] && [ "$isAbsolute" ]; then
+    echo 'ERROR: Cannot combine -a|--absolute with --newer|--older; use -lt|-le|-eq|-ne|-ge|-gt instead.'
     echo
     printUsage "$0"
     exit 2

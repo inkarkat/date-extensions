@@ -62,3 +62,13 @@ load fixture
     assert_line -n 0 'ERROR: Invalid TIMESLOT: "eon".'
     assert_line -n 1 -e '^Usage:'
 }
+
+@test "combining --absolute with --newer and --older prints error" {
+    for cmpOp in --newer --older
+    do
+	run -2 datediff --absolute $cmpOp 1s 2026-04-20 \
+	    && assert_line -n 0 'ERROR: Cannot combine -a|--absolute with --newer|--older; use -lt|-le|-eq|-ne|-ge|-gt instead.' \
+	    && assert_line -n 1 -e '^Usage:' \
+	    || fail "$cmpOp -1s"
+    done
+}
