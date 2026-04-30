@@ -251,11 +251,11 @@ printCalculated()
     local divisor=$1; shift
     local unitDiff=$(divround $((100 * diff / divisor)))
     local flooredDiff="${unitDiff%.*}"
-    printf '%s%d%s\n' "$prefix" $flooredDiff "$suffix"
+    printf '%s%d%s%s\n' "$prefix" $flooredDiff "$suffix" "$addendum"
 }
 printSingleUnit()
 {
-    printf '%s%d%s\n' "$prefix" "${1:?}" "$suffix"
+    printf '%s%d%s%s\n' "$prefix" "${1:?}" "$suffix" "$addendum"
 }
 printOne()
 {
@@ -346,7 +346,7 @@ diffOneDate()
 	fi
     fi
     local prefixAndDirectionPrefix="${prefix}${directionPrefix}"
-    local suffixAndDirectionSuffix="${directionSuffix}${suffix}"
+    local suffixAndDirectionSuffix="${directionSuffix}${suffix}${addendum}"
 
     addDiffUnit   "$secondsDiff" second
     calculateUnit "$secondsDiff" minute 60
@@ -399,7 +399,7 @@ diffOneDate()
 			    alternatives+=("${directionPrefix}${d}${directionSuffix}")
 			done
 			[ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ${directionPrefix:+--prefix "$directionPrefix"} ${directionSuffix:+--suffix "$directionSuffix"} ' = ' "${diffInUnits[@]}")")
-			joinBy --prefix "${prefix}[" --suffix "]${suffix}" '|' "${alternatives[@]}"
+			joinBy --prefix "${prefix}[" --suffix "]${suffix}${addendum}" '|' "${alternatives[@]}"
 			;;
 	*)		printf >&2 'ERROR: Invalid output format: %s\n' "$outputFormat"; exit 2;;
     esac
@@ -412,13 +412,9 @@ diffInput()
     while IFS=$'\n' read -r line || [ -n "$line" ]
     do
 	dateOrTime="${line%%$'\t'*}"
-	addendum="${line#"$dateOrTime"}"; addendum="${addendum#$'\t'}"
+	addendum="${line#"$dateOrTime"}"
 	if [ -z "$dateOrTime" ]; then
-	    if isOutput; then
-		[ -n "$addendum" ] \
-		    && printf '\t%s\n' "$addendum" \
-		    || echo
-	    fi
+	    isOutput && printf '%s\n' "$addendum"
 	    continue
 	fi
 
