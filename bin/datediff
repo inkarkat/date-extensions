@@ -6,6 +6,8 @@ shopt -qs extglob
 
 : ${DATE:=date}
 
+: ${DATEDIFF_WHAT:='the difference between two DATEs or TIMEs / the passed DATE or TIME and now'}
+: ${DATEDIFF_INPUT_ARGS:='-f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'}
 readonly generalArgs='[-u|--utc|--universal]'
 readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|textform'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
@@ -21,12 +23,10 @@ printShortUsage()
     printf 'Usage: %q %s\n' "$(basename "$1")" "$generalArgs [-?|-h|--help] ..."
     echo
     cat <<HELPDESCRIPTION
-Calculate difference between two DATEs or TIMEs / the passed DATE or TIME and
-now, and print it in flexible units depending on the magnitude of the
-difference.
+Calculate ${DATEDIFF_WHAT}, and print it in flexible units depending on the magnitude of the difference.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [-a|--absolute] [--no-direction|DATE|TIME] -f|--file FILE [-f ...]|DATE|TIME"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [-a|--absolute] [--no-direction] $DATEDIFF_INPUT_ARGS"
     echo
     cat <<HELPDESCRIPTION
 Print the passed difference in seconds or days in flexible units depending on
@@ -36,8 +36,9 @@ HELPDESCRIPTION
     printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
     echo
     cat <<HELPDESCRIPTION
-Test whether the difference is greater / smaller than AGE. Can be combined with
--o|--output to print the actual difference if the test fails.
+Test whether ${DATEDIFF_WHAT} is greater / smaller than AGE.
+Can be combined with -o|--output to print the actual difference if the test
+fails.
 Note: -lt|-le|-eq|-ne|-ge|-gt are purely mathematical comparisons with the
 difference of DATE|TIME to now / the second passed DATE|TIME to the first.
 --newer|--older instead are (signed) age comparisons; future dates / dates where
@@ -50,15 +51,15 @@ SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... $newerOlderArgs -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]"
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... $comparisonArgs -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... $newerOlderArgs $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... $comparisonArgs $DATEDIFF_INPUT_ARGS"
     echo
     cat <<HELPDESCRIPTION
-Test whether the difference falls inside / outside TIMESLOT. TIMESLOT can be one
-of second|minute|hour|day|week|month|year.
+Test whether ${DATEDIFF_WHAT} falls inside / outside TIMESLOT.
+TIMESLOT can be one of second|minute|hour|day|week|month|year.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... $timeslotArgs -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... $timeslotArgs $DATEDIFF_INPUT_ARGS"
 }
 printUsage()
 {
