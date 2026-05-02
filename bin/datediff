@@ -6,6 +6,8 @@ shopt -qs extglob
 
 : ${DATE:=date}
 
+hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
+: ${DATEDIFF_COMMAND:=$(basename "$0")}
 : ${DATEDIFF_WHAT:='the difference between two DATEs or TIMEs / the passed DATE or TIME and now'}
 : ${DATEDIFF_INPUT_ARGS:='-f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'}
 readonly generalArgs='[-u|--utc|--universal]'
@@ -20,21 +22,23 @@ getShortUsage()
 }
 printShortUsage()
 {
-    printf 'Usage: %q %s\n' "$(basename "$1")" "$generalArgs [-?|-h|--help] ..."
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "$generalArgs [-?|-h|--help] ..."
     echo
     cat <<HELPDESCRIPTION
 Calculate ${DATEDIFF_WHAT}, and print it in flexible units depending on the magnitude of the difference.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [-a|--absolute] [--no-direction] $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [-a|--absolute] [--no-direction] $DATEDIFF_INPUT_ARGS"
     echo
-    cat <<HELPDESCRIPTION
+    if [ ! "$hasCustomWhat" ]; then
+	cat <<HELPDESCRIPTION
 Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
 HELPDESCRIPTION
-    echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
-    echo
+	echo
+	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
+	echo
+    fi
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} is greater / smaller than AGE.
 Can be combined with -o|--output to print the actual difference if the test
@@ -51,22 +55,22 @@ SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... $newerOlderArgs $DATEDIFF_INPUT_ARGS"
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... $comparisonArgs $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderArgs $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonArgs $DATEDIFF_INPUT_ARGS"
     echo
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} falls inside / outside TIMESLOT.
 TIMESLOT can be one of second|minute|hour|day|week|month|year.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... $timeslotArgs $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $timeslotArgs $DATEDIFF_INPUT_ARGS"
 }
 printUsage()
 {
     # This is the short help when launched with no or incorrect arguments.
     # It is printed to stderr to avoid accidental processing.
     printShortUsage "$1" >&2
-    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+    printf >&2 '\nTry %q --help for more information.\n' "$DATEDIFF_COMMAND"
 }
 printLongUsage()
 {
@@ -94,7 +98,7 @@ whereas "-le 1d" would yield true as long as the actual difference is within
 			the output; empty DATE / TIME is tolerated) from FILE.
 			These are then each compared to now / (as the second
 			date to) the passed DATE / TIME (being the first).
-
+$DATEDIFF_ADDITIONAL_OPTIONS
 EXIT STATUS:
     0	Complete success.
     1	The comparison failed; at least one DATE / TIME did not pass it.
@@ -172,6 +176,7 @@ do
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--get-short-usage)
 			shift; getShortUsage; exit 0;;
+	--print-usage)	shift; printUsage "$0"; exit 2;;
 	--understands)	shift
 			option() { printf 1; exit 0; }
 			parameter() { printf 2; exit 0; }
