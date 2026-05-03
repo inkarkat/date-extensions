@@ -10,6 +10,9 @@ hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
 : ${DATEDIFF_COMMAND:=$(basename "$0")}
 : ${DATEDIFF_WHAT:='the difference between two DATEs or TIMEs / the passed DATE or TIME and now'}
 : ${DATEDIFF_INPUT_ARGS:='-f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'}
+: ${DATEDIFF_ADDITIONAL_EXIT_STATUS:='    4	Invalid DATE(s) / TIME(s) passed.
+    5	A FILE could not be read.
+    99	Empty input; no DATE / TIME could be read.'}
 readonly generalArgs='[-u|--utc|--universal]'
 readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|textform'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
@@ -103,9 +106,7 @@ EXIT STATUS:
     0	Complete success.
     1	The comparison failed; at least one DATE / TIME did not pass it.
     2	Bad invocation, wrong or missing command-line arguments.
-    4	Invalid DATE(s) / TIME(s) passed.
-    5	A FILE could not be read.
-    99	Empty input; no DATE / TIME could be read.
+$DATEDIFF_ADDITIONAL_EXIT_STATUS
 HELPTEXT
 }
 
