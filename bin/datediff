@@ -6,8 +6,15 @@ shopt -qs extglob
 
 : ${DATE:=date}
 
+hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
+: ${DATEDIFF_COMMAND:=$(basename "$0")}
+: ${DATEDIFF_WHAT:='the difference between two DATEs or TIMEs / the passed DATE or TIME and now'}
+: ${DATEDIFF_INPUT_ARGS:='-f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'}
+: ${DATEDIFF_ADDITIONAL_EXIT_STATUS:='    4	Invalid DATE(s) / TIME(s) passed.
+    5	A FILE could not be read.
+    99	Empty input; no DATE / TIME could be read.'}
 readonly generalArgs='[-u|--utc|--universal]'
-readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|textform'
+readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|all|textform'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
 readonly newerOlderArgs='--newer|--older [-]AGE[SUFFIX]'
 readonly comparisonArgs='-lt|-le|-eq|-ne|-ge|-gt [-]AGE[SUFFIX] [-a|--absolute]'
@@ -18,26 +25,27 @@ getShortUsage()
 }
 printShortUsage()
 {
-    printf 'Usage: %q %s\n' "$(basename "$1")" "$generalArgs [-?|-h|--help] ..."
+    printf 'Usage: [DATEDIFF_OUTPUT_FORMAT=%s] %q %s\n' "$availableOutputFormats" "$DATEDIFF_COMMAND" "$generalArgs [-?|-h|--help] ..."
     echo
     cat <<HELPDESCRIPTION
-Calculate difference between two DATEs or TIMEs / the passed DATE or TIME and
-now, and print it in flexible units depending on the magnitude of the
-difference.
+Calculate ${DATEDIFF_WHAT}, and print it in flexible units depending on the magnitude of the difference.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [-a|--absolute] [--no-direction|DATE|TIME] -f|--file FILE [-f ...]|DATE|TIME"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [-a|--absolute] [--no-direction] $DATEDIFF_INPUT_ARGS"
     echo
-    cat <<HELPDESCRIPTION
+    if [ ! "$hasCustomWhat" ]; then
+	cat <<HELPDESCRIPTION
 Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
 HELPDESCRIPTION
-    echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
-    echo
+	echo
+	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
+	echo
+    fi
     cat <<HELPDESCRIPTION
-Test whether the difference is greater / smaller than AGE. Can be combined with
--o|--output to print the actual difference if the test fails.
+Test whether ${DATEDIFF_WHAT} is greater / smaller than AGE.
+Can be combined with -o|--output to print the actual difference if the test
+fails.
 Note: -lt|-le|-eq|-ne|-ge|-gt are purely mathematical comparisons with the
 difference of DATE|TIME to now / the second passed DATE|TIME to the first.
 --newer|--older instead are (signed) age comparisons; future dates / dates where
@@ -50,22 +58,22 @@ SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... $newerOlderArgs -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]"
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... $comparisonArgs -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderArgs $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonArgs $DATEDIFF_INPUT_ARGS"
     echo
     cat <<HELPDESCRIPTION
-Test whether the difference falls inside / outside TIMESLOT. TIMESLOT can be one
-of second|minute|hour|day|week|month|year.
+Test whether ${DATEDIFF_WHAT} falls inside / outside TIMESLOT.
+TIMESLOT can be one of second|minute|hour|day|week|month|year.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... $timeslotArgs -f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $timeslotArgs $DATEDIFF_INPUT_ARGS"
 }
 printUsage()
 {
     # This is the short help when launched with no or incorrect arguments.
     # It is printed to stderr to avoid accidental processing.
     printShortUsage "$1" >&2
-    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+    printf >&2 '\nTry %q --help for more information.\n' "$DATEDIFF_COMMAND"
 }
 printLongUsage()
 {
@@ -93,14 +101,12 @@ whereas "-le 1d" would yield true as long as the actual difference is within
 			the output; empty DATE / TIME is tolerated) from FILE.
 			These are then each compared to now / (as the second
 			date to) the passed DATE / TIME (being the first).
-
+$DATEDIFF_ADDITIONAL_OPTIONS
 EXIT STATUS:
     0	Complete success.
     1	The comparison failed; at least one DATE / TIME did not pass it.
     2	Bad invocation, wrong or missing command-line arguments.
-    4	Invalid DATE(s) / TIME(s) passed.
-    5	A FILE could not be read.
-    99	Empty input; no DATE / TIME could be read.
+$DATEDIFF_ADDITIONAL_EXIT_STATUS
 HELPTEXT
 }
 
@@ -154,7 +160,7 @@ isDirection=t
 hasDifference=
 secondsDiff=
 daysDiff=
-outputFormat=
+outputFormat="$DATEDIFF_OUTPUT_FORMAT"
 prefix=
 suffix=
 spanCompareOp=
@@ -171,6 +177,7 @@ do
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--get-short-usage)
 			shift; getShortUsage; exit 0;;
+	--print-usage)	shift; printUsage "$0"; exit 2;;
 	--understands)	shift
 			option() { printf 1; exit 0; }
 			parameter() { printf 2; exit 0; }
@@ -182,7 +189,7 @@ do
 			dateArgs+=("$1"); shift; option;;
 	--absolute|-a)	isAbsolute=t; shift; option;;
 	--no-direction)	isDirection=; shift; option;;
-	--output|-o)	shift; outputFormat="$1"; shift; parameter;;
+	--output|-o)	shift; outputFormat="${1:?}"; shift; parameter;;
 	--prefix)	shift; prefix+="${1?}"; shift; parameter;;
 	--suffix)	shift; suffix+="${1?}"; shift; parameter;;
 
@@ -401,8 +408,8 @@ diffOneDate()
     calculateUnit "$daysDiff"    year 365
     calculateUnit "$daysDiff"    generation 9131
 
-    case "$outputFormat" in
-	'')		joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
+    case "${outputFormat:-all}" in
+	all)		joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
 
 	s?(econd?(s)))  printSingleUnit ${sigil}${secondsDiff};;
 	m?(inute?(s)))  printCalculated ${sigil}${secondsDiff} 60;;
