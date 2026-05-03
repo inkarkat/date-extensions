@@ -251,18 +251,23 @@ fi >&2
     && getNow() { printf %s "$NOW"; } \
     || getNow() { printf '%(%s)T' -1; }
 
+getDate()
+{
+    "$DATE" "${dateArgs[@]}" --date="${1:?}" "+${timeformat:?}"
+}
+
 parseDates()
 {
     if [ $# -eq 1 ]; then
 	if [ "$timeformat" = '%s' ]; then
 	    d1=$(getNow)
 	else
-	    d1=$("$DATE" "${dateArgs[@]}" --date="@$(getNow)" "+${timeformat:?}")
+	    d1=$(getDate "@$(getNow)")
 	fi \
-	    && d2=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}")
+	    && d2=$(getDate "$1")
     else
-	d1=$("$DATE" "${dateArgs[@]}" --date="$1" "+${timeformat:?}") \
-	    && d2=$("$DATE" "${dateArgs[@]}" --date="$2" "+${timeformat:?}")
+	d1=$(getDate "$1") \
+	    && d2=$(getDate "$2")
     fi || return 4
 }
 
