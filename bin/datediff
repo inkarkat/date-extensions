@@ -25,7 +25,7 @@ getShortUsage()
 }
 printShortUsage()
 {
-    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "$generalArgs [-?|-h|--help] ..."
+    printf 'Usage: [DATEDIFF_OUTPUT_FORMAT=%s] %q %s\n' "$availableOutputFormats" "$DATEDIFF_COMMAND" "$generalArgs [-?|-h|--help] ..."
     echo
     cat <<HELPDESCRIPTION
 Calculate ${DATEDIFF_WHAT}, and print it in flexible units depending on the magnitude of the difference.
@@ -160,7 +160,7 @@ isDirection=t
 hasDifference=
 secondsDiff=
 daysDiff=
-outputFormat=
+outputFormat="$DATEDIFF_OUTPUT_FORMAT"
 prefix=
 suffix=
 spanCompareOp=
