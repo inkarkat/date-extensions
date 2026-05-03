@@ -14,7 +14,7 @@ hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
     5	A FILE could not be read.
     99	Empty input; no DATE / TIME could be read.'}
 readonly generalArgs='[-u|--utc|--universal]'
-readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|textform'
+readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|all|textform'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
 readonly newerOlderArgs='--newer|--older [-]AGE[SUFFIX]'
 readonly comparisonArgs='-lt|-le|-eq|-ne|-ge|-gt [-]AGE[SUFFIX] [-a|--absolute]'
@@ -189,7 +189,7 @@ do
 			dateArgs+=("$1"); shift; option;;
 	--absolute|-a)	isAbsolute=t; shift; option;;
 	--no-direction)	isDirection=; shift; option;;
-	--output|-o)	shift; outputFormat="$1"; shift; parameter;;
+	--output|-o)	shift; outputFormat="${1:?}"; shift; parameter;;
 	--prefix)	shift; prefix+="${1?}"; shift; parameter;;
 	--suffix)	shift; suffix+="${1?}"; shift; parameter;;
 
@@ -408,8 +408,8 @@ diffOneDate()
     calculateUnit "$daysDiff"    year 365
     calculateUnit "$daysDiff"    generation 9131
 
-    case "$outputFormat" in
-	'')		joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
+    case "${outputFormat:-all}" in
+	all)		joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
 
 	s?(econd?(s)))  printSingleUnit ${sigil}${secondsDiff};;
 	m?(inute?(s)))  printCalculated ${sigil}${secondsDiff} 60;;
