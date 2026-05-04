@@ -4,7 +4,7 @@ load fixture
 
 @test "diff between two times" {
     typeset -A data=(
-	[10:00:00]='0 seconds'
+	[10:00:00]='at a single point in time = 0 seconds'
 	[10:00:01]='1 second'
 	[10:00:02]='2 seconds'
 	[10:01]='60 seconds = 1 minute'
@@ -24,7 +24,7 @@ load fixture
 
 @test "diff between two dates" {
     typeset -A data=(
-	[2026-04-20 10:00:00]='0 seconds'
+	[2026-04-20 10:00:00]='at a single point in time = 0 seconds'
 	[2026-04-20 09:59:59]='-1 second'
 	[2026-04-19 10:00:00]='-1440 minutes = -24 hours = -1 day = -0.1 weeks'
 	[2026-04-21 10:00:00]='1440 minutes = 24 hours = 1 day = 0.1 weeks'

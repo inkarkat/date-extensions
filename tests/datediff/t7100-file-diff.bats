@@ -15,7 +15,7 @@ load fixture
 @test "dates read from file against passed date" {
     run -0 datediff --file "${BATS_TEST_DIRNAME}/dates.txt" '2026-04-20 10:00'
     assert_output - <<'EOF'
-0 seconds
+at a single point in time = 0 seconds
 -1 second
 -1440 minutes = -24 hours = -1 day = -0.1 weeks
 1440 minutes = 24 hours = 1 day = 0.1 weeks

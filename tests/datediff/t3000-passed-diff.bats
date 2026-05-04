@@ -85,7 +85,7 @@ load fixture
 
 @test "passed seconds diff --no-direction" {
     typeset -A data=(
-	[0]='0 seconds'
+	[0]='at a single point in time = 0 seconds'
 	[-36000]='-600 minutes = -10 hours = -0.4 days'
 	[3600]='3600 seconds = 60 minutes = 1 hour'
     )

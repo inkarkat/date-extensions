@@ -382,6 +382,8 @@ diffOneDate()
 		sigil='-'
 		directionSuffix=' ago'
 	    fi
+	elif [ $secondsDiff -eq 0 ]; then
+	    diffInUnits+=('at a single point in time')
 	fi
     fi
     if [ -z "$daysDiff" ]; then

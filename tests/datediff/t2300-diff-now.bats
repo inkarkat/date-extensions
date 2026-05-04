@@ -52,7 +52,7 @@ load fixture
 
 @test "diff with --no-direction between now and date works like diff between two dates" {
     typeset -A data=(
-	[2026-04-20 10:00:00]='0 seconds'
+	[2026-04-20 10:00:00]='at a single point in time = 0 seconds'
 	[2026-04-20 09:59:59]='-1 second'
 	[2026-04-19 10:00:00]='-1440 minutes = -24 hours = -1 day = -0.1 weeks'
 	[2026-04-21 10:00:00]='1440 minutes = 24 hours = 1 day = 0.1 weeks'
@@ -211,7 +211,7 @@ load fixture
 
 @test "diff with --no-direction to now with output in whole units" {
     typeset -A data=(
-	[2026-04-20 10:00:00]='0 seconds'
+	[2026-04-20 10:00:00]='at a single point in time'
 	[2027-01-01]='6135 hours = 255.6 days = 36.6 weeks = 8.5 months'
 	[1976-10-20]='-2583 weeks = -602.6 months = -49.5 years = -2 generations'
     )

@@ -172,7 +172,7 @@ load fixture
 
 @test "diff with output in whole units" {
     typeset -A data=(
-	[2026-04-20 10:00:00]='0 seconds'
+	[2026-04-20 10:00:00]='at a single point in time'
 	[2026-04-20 09:59:59]='-1 second'
 	[2026-04-19 10:00:00]='-1440 minutes = -24 hours = -1 day'
 	[2026-04-21 10:00:00]='1440 minutes = 24 hours = 1 day'
@@ -193,7 +193,7 @@ load fixture
 
 @test "diff with output in smallest unit" {
     typeset -A data=(
-	[2026-04-20 10:00:00]='0 seconds'
+	[2026-04-20 10:00:00]='at a single point in time'
 	[2026-04-20 09:59:59]='-1 second'
 	[2026-04-19 10:00:00]='-1440 minutes'
 	[2026-04-21 10:00:00]='1440 minutes'
@@ -214,7 +214,7 @@ load fixture
 
 @test "diff with output in best unit" {
     typeset -A data=(
-	[2026-04-20 10:00:00]='0 seconds'
+	[2026-04-20 10:00:00]='at a single point in time'
 	[2026-04-20 09:59:59]='-1 second'
 	[2026-04-19 10:00:00]='-1 day'
 	[2026-04-21 10:00:00]='1 day'
@@ -256,7 +256,7 @@ load fixture
 
 @test "diff with default output (all)" {
     typeset -A data=(
-	[2026-04-20 10:00:00]='0 seconds'
+	[2026-04-20 10:00:00]='at a single point in time = 0 seconds'
 	[2026-04-20 09:59:59]='-1 second'
 	[2026-04-19 10:00:00]='-1440 minutes = -24 hours = -1 day = -0.1 weeks'
 	[2026-04-21 10:00:00]='1440 minutes = 24 hours = 1 day = 0.1 weeks'
@@ -298,7 +298,7 @@ load fixture
 
 @test "diff with output as textform" {
     typeset -A data=(
-	[2026-04-20 10:00:00]='[0 seconds]'
+	[2026-04-20 10:00:00]='[at a single point in time|0 seconds|at a single point in time = 0 seconds]'
 	[2026-04-20 09:59:59]='[-1 second]'
 	[2026-04-19 10:00:00]='[-1440 minutes|-24 hours|-1 day|-0.1 weeks|-1440 minutes = -24 hours = -1 day = -0.1 weeks]'
 	[2026-04-21 10:00:00]='[1440 minutes|24 hours|1 day|0.1 weeks|1440 minutes = 24 hours = 1 day = 0.1 weeks]'

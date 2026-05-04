@@ -20,7 +20,7 @@ load fixture
 @test "dates and addenda read from file against passed date" {
     run -0 datediff --file "${BATS_TEST_DIRNAME}/dates-addenda.tsv" '2026-04-20 10:00'
     assert_output - <<'EOF'
-0 seconds	the time is now
+at a single point in time = 0 seconds	the time is now
 -1 second	just before the time
 -1440 minutes = -24 hours = -1 day = -0.1 weeks	the day before
 1440 minutes = 24 hours = 1 day = 0.1 weeks	the day after
