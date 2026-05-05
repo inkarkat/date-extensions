@@ -428,8 +428,9 @@ diffOneDate()
 	fi
     fi
     if [ -z "$daysDiff" ]; then
-	[ "${secondsDiff:0:1}" = '-' ] \
-	    && local daysDiff=-$(( (${secondsDiff#-} + 43200) / 86400 )) \
+	# Ignore $sigil here.
+	[ $secondsDiff -lt 0 ] \
+	    && local daysDiff=-$(( (-1 * secondsDiff + 43200) / 86400 )) \
 	    || local daysDiff=$(( (secondsDiff + 43200) / 86400 ))
     fi
     if [ -z "$secondsDiff" ] && [ "$isDirection" ] && [ ! "$isAbsolute" ] && [ $daysDiff -eq 1 ]; then
