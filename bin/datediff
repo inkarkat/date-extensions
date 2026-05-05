@@ -330,6 +330,17 @@ printOne()
     printf '%s%s%s\n' "$prefixAndDirectionPrefix" "${1:?}" "$suffixAndDirectionSuffix"
 }
 
+getPreciseDiff()
+{
+    local sigil=''
+    if [ $secondsDiff -lt 0 ]; then
+	sigil='-'
+	secondsDiff=$((-secondsDiff))
+    fi
+    duration="$(secondsToDuration "${secondsToDurationArgs[@]}" "$secondsDiff")" || return 3
+    printf %s%s "$sigil" "$duration"
+}
+
 diffOneDate()
 {
     local directionPrefix=
@@ -461,13 +472,8 @@ diffOneDate()
 			done
 			printOne "$best"
 			;;
-	precise)	sigil=''
-			if [ $secondsDiff -lt 0 ]; then
-			    sigil='-'
-			    secondsDiff=$((-secondsDiff))
-			fi
-			duration="$(secondsToDuration "${secondsToDurationArgs[@]}" "$secondsDiff")" || exit 3
-			printf '%s%s%s%s%s\n' "$prefixAndDirectionPrefix" "$sigil" "$duration" "$suffixAndDirectionSuffix" "$addendum"
+	precise)	preciseDiff="$(getPreciseDiff $secondsDiff)" || exit $?
+			printf '%s%s%s%s\n' "$prefixAndDirectionPrefix" "$preciseDiff" "$suffixAndDirectionSuffix" "$addendum"
 			;;
 	all)		joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
 
