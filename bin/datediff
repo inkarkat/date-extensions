@@ -15,7 +15,7 @@ hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
     99	Empty input; no DATE / TIME could be read.'}
 readonly generalArgs='[-u|--utc|--universal]'
 readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|precise|all|textform'
-readonly precisionArgs='[--prefer-clock] [--precision|-p N|[U|Z][.N](w|d|h|m|s) | --precision-width|-P WIDTH] [-w|--width [+]WIDTH]'
+readonly precisionArgs='[--prefer-clock] [--long-units] [--precision|-p N|[U|Z][.N](w|d|h|m|s) | --precision-width|-P WIDTH] [-w|--width [+]WIDTH]'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
 readonly newerOlderArgs='--newer|--older [-]AGE[SUFFIX]'
 readonly comparisonArgs='-lt|-le|-eq|-ne|-ge|-gt [-]AGE[SUFFIX] [-a|--absolute]'
@@ -210,7 +210,8 @@ do
 			shift; outputSign=inverted; option;;
 	--no-direction)	shift; isDirection=; option;;
 	--output|-o)	shift; outputFormat="${1:?}"; shift; parameter;;
-	--prefer-clock)	secondsToDurationArgs+=("$1"); shift; option;;
+	--prefer-clock|--long-units)
+			secondsToDurationArgs+=("$1"); shift; option;;
 	--precision|-p|--precision-width|-P|--width|-w)
 			secondsToDurationArgs+=("$1" "${2:?}"); shift; shift; parameter;;
 	--prefix)	shift; prefix+="${1?}"; shift; parameter;;
