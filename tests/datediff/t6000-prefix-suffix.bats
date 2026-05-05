@@ -32,7 +32,7 @@ generations	delta(-2) detected
 whole-units	delta(2583 weeks = 602.6 months = 49.5 years = 2 generations ago) detected
 smallest-unit	delta(2583 weeks ago) detected
 largest-unit	delta(2 generations ago) detected
-textform	delta([2583 weeks ago|602.6 months ago|49.5 years ago|2 generations ago|2583 weeks = 602.6 months = 49.5 years = 2 generations ago]) detected
+textform	delta([2583 weeks ago|602.6 months ago|49.5 years ago|2 generations ago|1g 19y 6mo 4d 14h 24m ago|2583 weeks = 602.6 months = 49.5 years = 2 generations ago]) detected
 EOF
 }
 

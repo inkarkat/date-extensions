@@ -16,7 +16,7 @@ load fixture
 	[smallest-unit]='2583 weeks ago'
 	[best-unit]='2 generations ago'
 	[largest-unit]='2 generations ago'
-	[textform]='[2583 weeks ago|602.6 months ago|49.5 years ago|2 generations ago|2583 weeks = 602.6 months = 49.5 years = 2 generations ago]'
+	[textform]='[2583 weeks ago|602.6 months ago|49.5 years ago|2 generations ago|1g 19y 6mo 4d 14h 24m ago|2583 weeks = 602.6 months = 49.5 years = 2 generations ago]'
     )
 
     for outputFormat in "${!data[@]}"

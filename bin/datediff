@@ -14,14 +14,15 @@ hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
     5	A FILE could not be read.
     99	Empty input; no DATE / TIME could be read.'}
 readonly generalArgs='[-u|--utc|--universal]'
-readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|all|textform'
+readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|precise|all|textform'
+readonly precisionArgs='[--prefer-clock] [--precision|-p N|[U|Z][.N](w|d|h|m|s) | --precision-width|-P WIDTH] [-w|--width [+]WIDTH]'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
 readonly newerOlderArgs='--newer|--older [-]AGE[SUFFIX]'
 readonly comparisonArgs='-lt|-le|-eq|-ne|-ge|-gt [-]AGE[SUFFIX] [-a|--absolute]'
 readonly timeslotArgs='-w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear]'
 getShortUsage()
 {
-    printf %s "$generalArgs [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [--short-units] [--no-direction] [${newerOlderArgs}|${comparisonArgs}|${timeslotArgs}]"
+    printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--no-direction] [${newerOlderArgs}|${comparisonArgs}|${timeslotArgs}]"
 }
 printShortUsage()
 {
@@ -31,7 +32,7 @@ printShortUsage()
 Calculate ${DATEDIFF_WHAT}, and print it in flexible units depending on the magnitude of the difference.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [--short-units] [-a|--absolute|--no-direction] $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [-a|--absolute|--no-direction] $DATEDIFF_INPUT_ARGS"
     echo
     if [ ! "$hasCustomWhat" ]; then
 	cat <<HELPDESCRIPTION
@@ -39,7 +40,7 @@ Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
 HELPDESCRIPTION
 	echo
-	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [--short-units] [-a|--absolute|--no-direction]"
+	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [--short-units] [-a|--absolute|--no-direction]"
 	echo
     fi
     cat <<HELPDESCRIPTION
@@ -163,6 +164,7 @@ hasDifference=
 secondsDiff=
 daysDiff=
 outputFormat="$DATEDIFF_OUTPUT_FORMAT"
+typeset -a secondsToDurationArgs=()
 prefix=
 suffix=
 spanCompareOp=
@@ -193,6 +195,9 @@ do
 	--short-units)	shift; isShortUnits=t; option;;
 	--no-direction)	shift; isDirection=; option;;
 	--output|-o)	shift; outputFormat="${1:?}"; shift; parameter;;
+	--prefer-clock)	secondsToDurationArgs+=("$1"); shift; option;;
+	--precision|-p|--precision-width|-P|--width|-w)
+			secondsToDurationArgs+=("$1" "${2:?}"); shift; shift; parameter;;
 	--prefix)	shift; prefix+="${1?}"; shift; parameter;;
 	--suffix)	shift; suffix+="${1?}"; shift; parameter;;
 
@@ -325,11 +330,34 @@ printOne()
     printf '%s%s%s\n' "$prefixAndDirectionPrefix" "${1:?}" "$suffixAndDirectionSuffix"
 }
 
+getPreciseDiff()
+{
+    local sigil=''
+    if [ -n "$secondsDiff" ]; then
+	if [ $secondsDiff -lt 0 ]; then
+	    sigil='-'
+	    secondsDiff=$((-secondsDiff))
+	fi
+    elif [ -n "$daysDiff" ]; then
+	if [ $daysDiff -lt 0 ]; then
+	    sigil='-'
+	    daysDiff=$((-daysDiff))
+	fi
+	secondsDiff=$((daysDiff * 86400))
+    else
+	return 0
+    fi
+
+    duration="$(secondsToDuration "${secondsToDurationArgs[@]}" "$secondsDiff")" || return 3
+    printf %s%s "$sigil" "$duration"
+}
+
 diffOneDate()
 {
     local directionPrefix=
     local directionSuffix=
     local sigil=
+    local preciseDiff=
     typeset -a diffInUnits=()
     local status=0
     if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
@@ -371,6 +399,7 @@ diffOneDate()
 	fi
 	if [ $daysDiff -eq 0 ]; then
 	    diffInUnits+=('0 days')
+	    preciseDiff='0d'
 	fi
     else
 	parseDates "$@" || return $?
@@ -404,10 +433,12 @@ diffOneDate()
 	    diffInUnits+=('yesterday' '1 day ago')
 	    directionSuffix=''
 	    local daysDiff=
+	    preciseDiff='1d ago'
 	else
 	    diffInUnits+=('tomorrow' 'in 1 day')
 	    directionPrefix=''
 	    local daysDiff=
+	    preciseDiff='in 1d'
 	fi
     fi
     local prefixAndDirectionPrefix="${prefix}${directionPrefix}"
@@ -424,8 +455,6 @@ diffOneDate()
     calculateUnit "$daysDiff"    g generation 9131
 
     case "${outputFormat:-all}" in
-	all)		joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
-
 	s?(econd?(s)))  printSingleUnit ${sigil}${secondsDiff};;
 	m?(inute?(s)))  printCalculated ${sigil}${secondsDiff} 60;;
 	h?(our?(s)))    printCalculated ${sigil}${secondsDiff} 3600;;
@@ -458,11 +487,21 @@ diffOneDate()
 			done
 			printOne "$best"
 			;;
-	textform)	alternatives=()
+	precise)	[ -n "$preciseDiff" ] || preciseDiff="$(getPreciseDiff)" || exit $?
+			printf '%s%s%s%s\n' "$prefixAndDirectionPrefix" "$preciseDiff" "$suffixAndDirectionSuffix" "$addendum"
+			;;
+	all)		preciseDiff="$(getPreciseDiff)" || exit $?
+			[ -n "$preciseDiff" ] && [[ "$preciseDiff" =~ [\ :] ]] && diffInUnits+=("$preciseDiff")
+			joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
+
+	textform)	preciseDiff="$(getPreciseDiff)" || exit $?
+			alternatives=()
 			for d in "${diffInUnits[@]}"
 			do
+			    [ "$d" = "$preciseDiff" ] && preciseDiff=''
 			    alternatives+=("${directionPrefix}${d}${directionSuffix}")
 			done
+			[ -n "$preciseDiff" ] && [[ "$preciseDiff" =~ [\ :] ]] && alternatives+=("${directionPrefix}${preciseDiff}${directionSuffix}")
 			[ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ${directionPrefix:+--prefix "$directionPrefix"} ${directionSuffix:+--suffix "$directionSuffix"} ' = ' "${diffInUnits[@]}")")
 			joinBy --prefix "${prefix}[" --suffix "]${suffix}${addendum}" '|' "${alternatives[@]}"
 			;;
