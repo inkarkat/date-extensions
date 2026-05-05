@@ -21,7 +21,7 @@ readonly comparisonArgs='-lt|-le|-eq|-ne|-ge|-gt [-]AGE[SUFFIX] [-a|--absolute]'
 readonly timeslotArgs='-w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear]'
 getShortUsage()
 {
-    printf %s "$generalArgs [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [--no-direction] [${newerOlderArgs}|${comparisonArgs}|${timeslotArgs}]"
+    printf %s "$generalArgs [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [--short-units] [--no-direction] [${newerOlderArgs}|${comparisonArgs}|${timeslotArgs}]"
 }
 printShortUsage()
 {
@@ -31,7 +31,7 @@ printShortUsage()
 Calculate ${DATEDIFF_WHAT}, and print it in flexible units depending on the magnitude of the difference.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [-a|--absolute] [--no-direction] $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs [--short-units] [-a|--absolute|--no-direction] $DATEDIFF_INPUT_ARGS"
     echo
     if [ ! "$hasCustomWhat" ]; then
 	cat <<HELPDESCRIPTION
@@ -39,7 +39,7 @@ Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
 HELPDESCRIPTION
 	echo
-	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [-a|--absolute|--no-direction]"
+	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [--short-units] [-a|--absolute|--no-direction]"
 	echo
     fi
     cat <<HELPDESCRIPTION
@@ -92,6 +92,7 @@ whereas "-le 1d" would yield true as long as the actual difference is within
     --absolute|-a	Print the absolute (positive) difference, i.e. ignore
 			which of the two dates is earlier / the sign of the
 			passed difference.
+    --short-units	Use "2m" instead of "2 minutes".
     --no-direction	No "in / ago" when comparing to now / passed
 			differences.
     --prefix PREFIX	Put PREFIX before the output.
@@ -157,6 +158,7 @@ parseTimeslot()
 typeset -a dateArgs=()
 isAbsolute=
 isDirection=t
+isShortUnits=
 hasDifference=
 secondsDiff=
 daysDiff=
@@ -187,8 +189,9 @@ do
 
 	--universal|--utc|-u)
 			dateArgs+=("$1"); shift; option;;
-	--absolute|-a)	isAbsolute=t; shift; option;;
-	--no-direction)	isDirection=; shift; option;;
+	--absolute|-a)	shift; isAbsolute=t; option;;
+	--short-units)	shift; isShortUnits=t; option;;
+	--no-direction)	shift; isDirection=; option;;
 	--output|-o)	shift; outputFormat="${1:?}"; shift; parameter;;
 	--prefix)	shift; prefix+="${1?}"; shift; parameter;;
 	--suffix)	shift; suffix+="${1?}"; shift; parameter;;
@@ -278,27 +281,32 @@ isOutput()
 
 addDiffUnit()
 {
-    local diff="$1"; shift
-    local unit="$1"; shift
+    local diff="${1?}"; shift
+    local shortUnit="${1:?}"; shift
+    local unit="${1:?}"; shift
 
     [ -n "$diff" ] || return
     [ "$diff" = 0 -a "$unit" != second ] && return	# Skip values that are zero, but keep at least "0 seconds" as the pathological corner case.
     local flooredDiff="${diff%.*}"; flooredDiff=${flooredDiff#-}
     [ ${#flooredDiff} -gt 4 ] && return	# Skip values that are too large (>9999).
 
-    local unitPlural='s'
-    [ "${diff#-}" = '1' ] && unitPlural=
-
-    diffInUnits+=("$diff ${unit}${unitPlural}")
+    if [ "$isShortUnits" ]; then
+	diffInUnits+=("${diff}${shortUnit}")
+    else
+	local unitPlural='s'
+	[ "${diff#-}" = '1' ] && unitPlural=
+	diffInUnits+=("$diff ${unit}${unitPlural}")
+    fi
 }
 calculateUnit()
 {
-    local diff=$1; shift
-    local unit=$1; shift
+    local diff="${1?}"; shift
+    local shortUnit="${1:?}"; shift
+    local unit="${1:?}"; shift
     local divisor=$1; shift
     local unitDiff=$(divround $((100 * diff / divisor)))
     [ -n "$diff" ] || return
-    addDiffUnit "$unitDiff" "$unit"
+    addDiffUnit "$unitDiff" "$shortUnit" "$unit"
 }
 printCalculated()
 {
@@ -405,15 +413,15 @@ diffOneDate()
     local prefixAndDirectionPrefix="${prefix}${directionPrefix}"
     local suffixAndDirectionSuffix="${directionSuffix}${suffix}${addendum}"
 
-    addDiffUnit   "$secondsDiff" second
-    calculateUnit "$secondsDiff" minute 60
-    calculateUnit "$secondsDiff" hour 3600
-    calculateUnit "$secondsDiff" day 86400
-    [ -z "$secondsDiff" ] && calculateUnit "$daysDiff"    day 1
-    calculateUnit "$daysDiff"    week 7
-    calculateUnit "$daysDiff"    month 30
-    calculateUnit "$daysDiff"    year 365
-    calculateUnit "$daysDiff"    generation 9131
+    addDiffUnit   "$secondsDiff" s second
+    calculateUnit "$secondsDiff" m minute 60
+    calculateUnit "$secondsDiff" h hour 3600
+    calculateUnit "$secondsDiff" d day 86400
+    [ -z "$secondsDiff" ] && calculateUnit "$daysDiff"    d day 1
+    calculateUnit "$daysDiff"    w week 7
+    calculateUnit "$daysDiff"    mo month 30
+    calculateUnit "$daysDiff"    y year 365
+    calculateUnit "$daysDiff"    g generation 9131
 
     case "${outputFormat:-all}" in
 	all)		joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
