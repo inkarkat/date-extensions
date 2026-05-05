@@ -345,7 +345,7 @@ getPreciseDiff()
 	fi
 	secondsDiff=$((daysDiff * 86400))
     else
-	echo >&2 'ASSERT: Either secondsDiff or daysDiff should have a value.'; return 3
+	return 0
     fi
 
     duration="$(secondsToDuration "${secondsToDurationArgs[@]}" "$secondsDiff")" || return 3
@@ -357,6 +357,7 @@ diffOneDate()
     local directionPrefix=
     local directionSuffix=
     local sigil=
+    local preciseDiff=
     typeset -a diffInUnits=()
     local status=0
     if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
@@ -398,6 +399,7 @@ diffOneDate()
 	fi
 	if [ $daysDiff -eq 0 ]; then
 	    diffInUnits+=('0 days')
+	    preciseDiff='0d'
 	fi
     else
 	parseDates "$@" || return $?
@@ -431,10 +433,12 @@ diffOneDate()
 	    diffInUnits+=('yesterday' '1 day ago')
 	    directionSuffix=''
 	    local daysDiff=
+	    preciseDiff='1d ago'
 	else
 	    diffInUnits+=('tomorrow' 'in 1 day')
 	    directionPrefix=''
 	    local daysDiff=
+	    preciseDiff='in 1d'
 	fi
     fi
     local prefixAndDirectionPrefix="${prefix}${directionPrefix}"
@@ -483,21 +487,21 @@ diffOneDate()
 			done
 			printOne "$best"
 			;;
-	precise)	preciseDiff="$(getPreciseDiff $secondsDiff)" || exit $?
+	precise)	[ -n "$preciseDiff" ] || preciseDiff="$(getPreciseDiff)" || exit $?
 			printf '%s%s%s%s\n' "$prefixAndDirectionPrefix" "$preciseDiff" "$suffixAndDirectionSuffix" "$addendum"
 			;;
-	all)		preciseDiff="$(getPreciseDiff $secondsDiff)" || exit $?
-			[[ "$preciseDiff" =~ [\ :] ]] && diffInUnits+=("$preciseDiff")
+	all)		preciseDiff="$(getPreciseDiff)" || exit $?
+			[ -n "$preciseDiff" ] && [[ "$preciseDiff" =~ [\ :] ]] && diffInUnits+=("$preciseDiff")
 			joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
 
-	textform)	preciseDiff="$(getPreciseDiff $secondsDiff)" || exit $?
+	textform)	preciseDiff="$(getPreciseDiff)" || exit $?
 			alternatives=()
 			for d in "${diffInUnits[@]}"
 			do
 			    [ "$d" = "$preciseDiff" ] && preciseDiff=''
 			    alternatives+=("${directionPrefix}${d}${directionSuffix}")
 			done
-			[[ "$preciseDiff" =~ [\ :] ]] && alternatives+=("${directionPrefix}${preciseDiff}${directionSuffix}")
+			[ -n "$preciseDiff" ] && [[ "$preciseDiff" =~ [\ :] ]] && alternatives+=("${directionPrefix}${preciseDiff}${directionSuffix}")
 			[ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ${directionPrefix:+--prefix "$directionPrefix"} ${directionSuffix:+--suffix "$directionSuffix"} ' = ' "${diffInUnits[@]}")")
 			joinBy --prefix "${prefix}[" --suffix "]${suffix}${addendum}" '|' "${alternatives[@]}"
 			;;
