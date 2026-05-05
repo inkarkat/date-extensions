@@ -24,8 +24,8 @@ getShortUsage()
 {
     case "$1" in
 	comparisons)	printf %s "${newerOlderArgs}|${comparisonArgs}|${timeslotArgs}";;
-	output)		printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--no-direction]";;
-	*)		printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--no-direction] [${newerOlderArgs}|${comparisonArgs}|${timeslotArgs}]";;
+	output)		printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction]";;
+	*)		printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction] [${newerOlderArgs}|${comparisonArgs}|${timeslotArgs}]";;
     esac
 }
 printShortUsage()
@@ -36,7 +36,7 @@ printShortUsage()
 Calculate ${DATEDIFF_WHAT}, and print it in flexible units depending on the magnitude of the difference.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [-a|--absolute|--no-direction] $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [-a|--absolute|[--output-positive|--output-inverted] [--no-direction]] $DATEDIFF_INPUT_ARGS"
     echo
     if [ ! "$hasCustomWhat" ]; then
 	cat <<HELPDESCRIPTION
@@ -44,7 +44,7 @@ Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
 HELPDESCRIPTION
 	echo
-	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [--short-units] [-a|--absolute|--no-direction]"
+	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [--short-units] [-a|--absolute|[--output-positive|--output-inverted] [--no-direction]]"
 	echo
     fi
     cat <<HELPDESCRIPTION
@@ -94,10 +94,16 @@ whereas "-le 1d" would yield true as long as the actual difference is within
     --utc|--universal|-u
 			Use Coordinated Universal Time (UTC) instead of local
 			time for all dates.
-    --absolute|-a	Print the absolute (positive) difference, i.e. ignore
-			which of the two dates is earlier / the sign of the
-			passed difference.
+    --absolute|-a	Print / compare against the absolute (positive)
+			difference, i.e. ignore which of the two dates is
+			earlier / the sign of the passed difference.
     --short-units	Use "2m" instead of "2 minutes".
+    --output-positive	Omit a negative sign on negative differences (in the
+			output, but unlike --absolute not in the comparison).
+			Keeps "in / ago".
+    --output-inverted	Invert the sign of the difference (in the output), so
+			(when comparing to now) past dates are positive and
+			future dates are negative. Does not affect "in / ago".
     --no-direction	No "in / ago" when comparing to now / passed
 			differences.
     --prefix PREFIX	Put PREFIX before the output.
@@ -162,6 +168,7 @@ parseTimeslot()
 
 typeset -a dateArgs=()
 isAbsolute=
+outputSign=
 isDirection=t
 isShortUnits=
 hasDifference=
@@ -197,6 +204,10 @@ do
 			dateArgs+=("$1"); shift; option;;
 	--absolute|-a)	shift; isAbsolute=t; option;;
 	--short-units)	shift; isShortUnits=t; option;;
+	--output-positive)
+			shift; outputSign=positive; option;;
+	--output-inverted)
+			shift; outputSign=inverted; option;;
 	--no-direction)	shift; isDirection=; option;;
 	--output|-o)	shift; outputFormat="${1:?}"; shift; parameter;;
 	--prefer-clock)	secondsToDurationArgs+=("$1"); shift; option;;
@@ -360,7 +371,7 @@ diffOneDate()
 {
     local directionPrefix=
     local directionSuffix=
-    local sigil=
+    unset sigil
     local preciseDiff=
     typeset -a diffInUnits=()
     local status=0
@@ -394,6 +405,7 @@ diffOneDate()
 	    if [ $daysDiff -eq 0 ]; then
 		diffInUnits+=('today')
 	    elif [ $daysDiff -gt 0 ]; then
+		sigil=''
 		directionPrefix='in '
 	    else
 		daysDiff=$((-daysDiff))
@@ -410,6 +422,7 @@ diffOneDate()
 	local secondsDiff=$((d2 - d1))
 	[ $# -eq 1 ] || isDirection=    # Disable direction if two dates are given.
     fi
+
     if [ -n "$secondsDiff" ]; then
 	if [ "$isAbsolute" ]; then
 	    secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
@@ -417,6 +430,7 @@ diffOneDate()
 	    if [ $secondsDiff -eq 0 ]; then
 		diffInUnits+=('just now')
 	    elif [ $secondsDiff -gt 0 ]; then
+		sigil=''
 		directionPrefix='in '
 	    else
 		secondsDiff=$((-secondsDiff))
@@ -448,6 +462,22 @@ diffOneDate()
     fi
     local prefixAndDirectionPrefix="${prefix}${directionPrefix}"
     local suffixAndDirectionSuffix="${directionSuffix}${suffix}${addendum}"
+
+    case "$outputSign" in
+	'')	    ;;
+	positive)   [ -n "$secondsDiff" ] && [ $secondsDiff -lt 0 ] && secondsDiff=$((-secondsDiff))
+		    [ -n "$daysDiff" ] && [ $daysDiff -lt 0 ] && daysDiff=$((-daysDiff))
+		    unset sigil
+		    ;;
+	inverted)   if [ -n "${sigil+t}" ]; then
+			[ "$sigil" = '-' ] && sigil='' || sigil='-'
+		    else
+			[ -n "$secondsDiff" ] && secondsDiff=$((-secondsDiff))
+			[ -n "$daysDiff" ] && daysDiff=$((-daysDiff))
+		    fi
+		    ;;
+	*)	    printf >&2 'ASSERT: Unhandled outputSign: %s\n' "$outputSign"; exit 3;;
+    esac
 
     addDiffUnit   "$secondsDiff" s second
     calculateUnit "$secondsDiff" m minute 60
