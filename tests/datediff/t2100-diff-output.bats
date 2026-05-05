@@ -254,6 +254,27 @@ load fixture
     done
 }
 
+@test "diff with precise units" {
+    typeset -A data=(
+	[2026-04-20 10:00:00]='0s'
+	[2026-04-20 09:59:59]='-1s'
+	[2026-04-19 10:00:00]='-1d'
+	[2026-04-21 10:00:00]='1d'
+	[2026-04-21 12:32:48]='1d 02:32:48'
+	[2026-05-12 20:05:00]='3w 1d 10h 5m'
+	[2026-06-01]='1mo 1w 4d 4h'
+	[2027-01-01]='8mo 1w 5d 7h'
+	[1976-10-20]='-1g 19y 6mo 4d 14h 24m'
+    )
+
+    for date in "${!data[@]}"
+    do
+	run -0 datediff --output precise '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
+    done
+}
+
 @test "diff with default output (all)" {
     typeset -A data=(
 	[2026-04-20 10:00:00]='at a single point in time = 0 seconds'
