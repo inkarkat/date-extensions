@@ -281,11 +281,11 @@ load fixture
 	[2026-04-20 09:59:59]='-1 second'
 	[2026-04-19 10:00:00]='-1440 minutes = -24 hours = -1 day = -0.1 weeks'
 	[2026-04-21 10:00:00]='1440 minutes = 24 hours = 1 day = 0.1 weeks'
-	[2026-04-21 12:32:48]='1593 minutes = 26.5 hours = 1.1 days = 0.1 weeks'
-	[2026-05-12 20:05:00]='538.1 hours = 22.4 days = 3.1 weeks = 0.7 months'
-	[2026-06-01]='998 hours = 41.6 days = 6 weeks = 1.4 months = 0.1 years'
-	[2027-01-01]='6135 hours = 255.6 days = 36.6 weeks = 8.5 months = 0.7 years'
-	[1976-10-20]='-2583 weeks = -602.6 months = -49.5 years = -2 generations'
+	[2026-04-21 12:32:48]='1593 minutes = 26.5 hours = 1.1 days = 0.1 weeks = 1d 02:32:48'
+	[2026-05-12 20:05:00]='538.1 hours = 22.4 days = 3.1 weeks = 0.7 months = 3w 1d 10h 5m'
+	[2026-06-01]='998 hours = 41.6 days = 6 weeks = 1.4 months = 0.1 years = 1mo 1w 4d 4h'
+	[2027-01-01]='6135 hours = 255.6 days = 36.6 weeks = 8.5 months = 0.7 years = 8mo 1w 5d 7h'
+	[1976-10-20]='-2583 weeks = -602.6 months = -49.5 years = -2 generations = -1g 19y 6mo 4d 14h 24m'
     )
 
     for date in "${!data[@]}"
@@ -323,11 +323,11 @@ load fixture
 	[2026-04-20 09:59:59]='[-1 second]'
 	[2026-04-19 10:00:00]='[-1440 minutes|-24 hours|-1 day|-0.1 weeks|-1440 minutes = -24 hours = -1 day = -0.1 weeks]'
 	[2026-04-21 10:00:00]='[1440 minutes|24 hours|1 day|0.1 weeks|1440 minutes = 24 hours = 1 day = 0.1 weeks]'
-	[2026-04-21 12:32:48]='[1593 minutes|26.5 hours|1.1 days|0.1 weeks|1593 minutes = 26.5 hours = 1.1 days = 0.1 weeks]'
-	[2026-05-12 20:05:00]='[538.1 hours|22.4 days|3.1 weeks|0.7 months|538.1 hours = 22.4 days = 3.1 weeks = 0.7 months]'
-	[2026-06-01]='[998 hours|41.6 days|6 weeks|1.4 months|0.1 years|998 hours = 41.6 days = 6 weeks = 1.4 months = 0.1 years]'
-	[2027-01-01]='[6135 hours|255.6 days|36.6 weeks|8.5 months|0.7 years|6135 hours = 255.6 days = 36.6 weeks = 8.5 months = 0.7 years]'
-	[1976-10-20]='[-2583 weeks|-602.6 months|-49.5 years|-2 generations|-2583 weeks = -602.6 months = -49.5 years = -2 generations]'
+	[2026-04-21 12:32:48]='[1593 minutes|26.5 hours|1.1 days|0.1 weeks|1d 02:32:48|1593 minutes = 26.5 hours = 1.1 days = 0.1 weeks]'
+	[2026-05-12 20:05:00]='[538.1 hours|22.4 days|3.1 weeks|0.7 months|3w 1d 10h 5m|538.1 hours = 22.4 days = 3.1 weeks = 0.7 months]'
+	[2026-06-01]='[998 hours|41.6 days|6 weeks|1.4 months|0.1 years|1mo 1w 4d 4h|998 hours = 41.6 days = 6 weeks = 1.4 months = 0.1 years]'
+	[2027-01-01]='[6135 hours|255.6 days|36.6 weeks|8.5 months|0.7 years|8mo 1w 5d 7h|6135 hours = 255.6 days = 36.6 weeks = 8.5 months = 0.7 years]'
+	[1976-10-20]='[-2583 weeks|-602.6 months|-49.5 years|-2 generations|-1g 19y 6mo 4d 14h 24m|-2583 weeks = -602.6 months = -49.5 years = -2 generations]'
     )
 
     for date in "${!data[@]}"

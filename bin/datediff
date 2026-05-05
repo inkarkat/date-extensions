@@ -333,10 +333,21 @@ printOne()
 getPreciseDiff()
 {
     local sigil=''
-    if [ $secondsDiff -lt 0 ]; then
-	sigil='-'
-	secondsDiff=$((-secondsDiff))
+    if [ -n "$secondsDiff" ]; then
+	if [ $secondsDiff -lt 0 ]; then
+	    sigil='-'
+	    secondsDiff=$((-secondsDiff))
+	fi
+    elif [ -n "$daysDiff" ]; then
+	if [ $daysDiff -lt 0 ]; then
+	    sigil='-'
+	    daysDiff=$((-daysDiff))
+	fi
+	secondsDiff=$((daysDiff * 86400))
+    else
+	echo >&2 'ASSERT: Either secondsDiff or daysDiff should have a value.'; return 3
     fi
+
     duration="$(secondsToDuration "${secondsToDurationArgs[@]}" "$secondsDiff")" || return 3
     printf %s%s "$sigil" "$duration"
 }
@@ -475,13 +486,18 @@ diffOneDate()
 	precise)	preciseDiff="$(getPreciseDiff $secondsDiff)" || exit $?
 			printf '%s%s%s%s\n' "$prefixAndDirectionPrefix" "$preciseDiff" "$suffixAndDirectionSuffix" "$addendum"
 			;;
-	all)		joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
+	all)		preciseDiff="$(getPreciseDiff $secondsDiff)" || exit $?
+			[[ "$preciseDiff" =~ [\ :] ]] && diffInUnits+=("$preciseDiff")
+			joinBy ${prefixAndDirectionPrefix:+--prefix "$prefixAndDirectionPrefix"} ${suffixAndDirectionSuffix:+--suffix "$suffixAndDirectionSuffix"} ' = ' "${diffInUnits[@]}";;
 
-	textform)	alternatives=()
+	textform)	preciseDiff="$(getPreciseDiff $secondsDiff)" || exit $?
+			alternatives=()
 			for d in "${diffInUnits[@]}"
 			do
+			    [ "$d" = "$preciseDiff" ] && preciseDiff=''
 			    alternatives+=("${directionPrefix}${d}${directionSuffix}")
 			done
+			[[ "$preciseDiff" =~ [\ :] ]] && alternatives+=("${directionPrefix}${preciseDiff}${directionSuffix}")
 			[ ${#diffInUnits[@]} -gt 1 ] && alternatives+=("$(joinBy ${directionPrefix:+--prefix "$directionPrefix"} ${directionSuffix:+--suffix "$directionSuffix"} ' = ' "${diffInUnits[@]}")")
 			joinBy --prefix "${prefix}[" --suffix "]${suffix}${addendum}" '|' "${alternatives[@]}"
 			;;
