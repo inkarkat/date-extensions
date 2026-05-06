@@ -22,6 +22,46 @@ load fixture
     done
 }
 
+@test "diff between two times --output-positive" {
+    typeset -A data=(
+	[10:00:00]='at a single point in time = 0 seconds'
+	[10:00:01]='1 second'
+	[10:00:02]='2 seconds'
+	[10:01]='60 seconds = 1 minute'
+	[11:00]='3600 seconds = 60 minutes = 1 hour'
+	[23:59]='839 minutes = 14 hours = 0.6 days = 0.1 weeks = 13h 59m'
+	[00:00]='600 minutes = 10 hours = 0.4 days'
+	[09:00]='3600 seconds = 60 minutes = 1 hour'
+    )
+
+    for date in "${!data[@]}"
+    do
+	run -0 datediff --output-positive 10:00 "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
+    done
+}
+
+@test "diff between two times --output-inverted" {
+    typeset -A data=(
+	[10:00:00]='at a single point in time = 0 seconds'
+	[10:00:01]='-1 second'
+	[10:00:02]='-2 seconds'
+	[10:01]='-60 seconds = -1 minute'
+	[11:00]='-3600 seconds = -60 minutes = -1 hour'
+	[23:59]='-839 minutes = -14 hours = -0.6 days = -0.1 weeks = -13h 59m'
+	[00:00]='600 minutes = 10 hours = 0.4 days'
+	[09:00]='3600 seconds = 60 minutes = 1 hour'
+    )
+
+    for date in "${!data[@]}"
+    do
+	run -0 datediff --output-inverted 10:00 "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
+    done
+}
+
 @test "diff between two dates" {
     typeset -A data=(
 	[2026-04-20 10:00:00]='at a single point in time = 0 seconds'

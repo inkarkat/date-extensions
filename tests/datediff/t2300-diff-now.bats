@@ -74,6 +74,54 @@ load fixture
     done
 }
 
+@test "diff with --no-direction between now and date and positive output" {
+    typeset -A data=(
+	[2026-04-20 10:00:00]='at a single point in time = 0 seconds'
+	[2026-04-20 09:59:59]='1 second'
+	[2026-04-19 10:00:00]='1440 minutes = 24 hours = 1 day = 0.1 weeks'
+	[2026-04-21 10:00:00]='1440 minutes = 24 hours = 1 day = 0.1 weeks'
+	[2026-04-21 00:00:00]='840 minutes = 14 hours = 0.6 days = 0.1 weeks'
+	[2026-04-21 12:32:48]='1593 minutes = 26.5 hours = 1.1 days = 0.1 weeks = 1d 02:32:48'
+	[2026-05-01 10:00:00]='264 hours = 11 days = 1.6 weeks = 0.4 months = 1w 4d'
+	[2026-05-12 20:05:00]='538.1 hours = 22.4 days = 3.1 weeks = 0.7 months = 3w 1d 10h 5m'
+	[2026-06-01]='998 hours = 41.6 days = 6 weeks = 1.4 months = 0.1 years = 1mo 1w 4d 4h'
+	[2026-08-01]='2462 hours = 102.6 days = 14.7 weeks = 3.4 months = 0.3 years = 3mo 1w 4d 8h'
+	[2027-01-01]='6135 hours = 255.6 days = 36.6 weeks = 8.5 months = 0.7 years = 8mo 1w 5d 7h'
+	[1976-10-20]='2583 weeks = 602.6 months = 49.5 years = 2 generations = 1g 19y 6mo 4d 14h 24m'
+    )
+
+    for date in "${!data[@]}"
+    do
+	run -0 datediff --no-direction --output-positive "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
+    done
+}
+
+@test "diff with --no-direction between now and date and inverted output" {
+    typeset -A data=(
+	[2026-04-20 10:00:00]='at a single point in time = 0 seconds'
+	[2026-04-20 09:59:59]='1 second'
+	[2026-04-19 10:00:00]='1440 minutes = 24 hours = 1 day = 0.1 weeks'
+	[2026-04-21 10:00:00]='-1440 minutes = -24 hours = -1 day = -0.1 weeks'
+	[2026-04-21 00:00:00]='-840 minutes = -14 hours = -0.6 days = -0.1 weeks'
+	[2026-04-21 12:32:48]='-1593 minutes = -26.5 hours = -1.1 days = -0.1 weeks = -1d 02:32:48'
+	[2026-05-01 10:00:00]='-264 hours = -11 days = -1.6 weeks = -0.4 months = -1w 4d'
+	[2026-05-12 20:05:00]='-538.1 hours = -22.4 days = -3.1 weeks = -0.7 months = -3w 1d 10h 5m'
+	[2026-06-01]='-998 hours = -41.6 days = -6 weeks = -1.4 months = -0.1 years = -1mo 1w 4d 4h'
+	[2026-08-01]='-2462 hours = -102.6 days = -14.7 weeks = -3.4 months = -0.3 years = -3mo 1w 4d 8h'
+	[2027-01-01]='-6135 hours = -255.6 days = -36.6 weeks = -8.5 months = -0.7 years = -8mo 1w 5d 7h'
+	[1976-10-20]='2583 weeks = 602.6 months = 49.5 years = 2 generations = 1g 19y 6mo 4d 14h 24m'
+    )
+
+    for date in "${!data[@]}"
+    do
+	run -0 datediff --no-direction --output-inverted "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
+    done
+}
+
 @test "diff to now with output in seconds" {
     typeset -A data=(
 	[2026-04-20 10:00:00]='0'
@@ -84,6 +132,36 @@ load fixture
     for date in "${!data[@]}"
     do
 	run -0 datediff --output seconds "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
+    done
+}
+
+@test "diff to now with positive output in seconds" {
+    typeset -A data=(
+	[2026-04-20 10:00:00]='0'
+	[2027-01-01]='22086000'
+	[1976-10-20]='1562058000'
+    )
+
+    for date in "${!data[@]}"
+    do
+	run -0 datediff --output seconds --output-positive "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
+    done
+}
+
+@test "diff to now with inverted output in seconds" {
+    typeset -A data=(
+	[2026-04-20 10:00:00]='0'
+	[2027-01-01]='-22086000'
+	[1976-10-20]='1562058000'
+    )
+
+    for date in "${!data[@]}"
+    do
+	run -0 datediff --output seconds --output-inverted "$date" \
 	    && assert_output "${data["$date"]}" \
 	    || fail "$date"
     done
@@ -194,18 +272,21 @@ load fixture
     done
 }
 
-@test "diff to now with output in whole units" {
+@test "diff to now with output in whole units is not affected by positive and inverted output flags" {
     typeset -A data=(
 	[2026-04-20 10:00:00]='just now'
 	[2027-01-01]='in 6135 hours = 255.6 days = 36.6 weeks = 8.5 months'
 	[1976-10-20]='2583 weeks = 602.6 months = 49.5 years = 2 generations ago'
     )
 
-    for date in "${!data[@]}"
+    for option in '' --output-positive --output-inverted
     do
-	run -0 datediff --output whole-units "$date" \
-	    && assert_output "${data["$date"]}" \
-	    || fail "$date"
+	for date in "${!data[@]}"
+	do
+	    run -0 datediff --output whole-units $option "$date" \
+		&& assert_output "${data["$date"]}" \
+		|| fail "${option}${option:+ }$date"
+	done
     done
 }
 
@@ -224,18 +305,51 @@ load fixture
     done
 }
 
-@test "diff to now with output in smallest unit" {
+@test "diff with --no-direction to now with positive output in whole units" {
+    typeset -A data=(
+	[2026-04-20 10:00:00]='at a single point in time'
+	[2027-01-01]='6135 hours = 255.6 days = 36.6 weeks = 8.5 months'
+	[1976-10-20]='2583 weeks = 602.6 months = 49.5 years = 2 generations'
+    )
+
+    for date in "${!data[@]}"
+    do
+	run -0 datediff --output whole-units --output-positive --no-direction "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
+    done
+}
+
+@test "diff with --no-direction to now with inverted output in whole units" {
+    typeset -A data=(
+	[2026-04-20 10:00:00]='at a single point in time'
+	[2027-01-01]='-6135 hours = -255.6 days = -36.6 weeks = -8.5 months'
+	[1976-10-20]='2583 weeks = 602.6 months = 49.5 years = 2 generations'
+    )
+
+    for date in "${!data[@]}"
+    do
+	run -0 datediff --output whole-units --output-inverted --no-direction "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
+    done
+}
+
+@test "diff to now with output in smallest unit is not affected by positive and inverted output flags" {
     typeset -A data=(
 	[2026-04-20 10:00:00]='just now'
 	[2027-01-01]='in 6135 hours'
 	[1976-10-20]='2583 weeks ago'
     )
 
-    for date in "${!data[@]}"
+    for option in '' --output-positive --output-inverted
     do
-	run -0 datediff --output smallest-unit "$date" \
-	    && assert_output "${data["$date"]}" \
-	    || fail "$date"
+	for date in "${!data[@]}"
+	do
+	    run -0 datediff --output smallest-unit $option "$date" \
+		&& assert_output "${data["$date"]}" \
+		|| fail "${option}${option:+ }$date"
+	done
     done
 }
 

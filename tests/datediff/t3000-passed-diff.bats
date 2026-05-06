@@ -98,6 +98,36 @@ load fixture
     done
 }
 
+@test "passed seconds diff --no-direction --output-positive" {
+    typeset -A data=(
+	[0]='at a single point in time = 0 seconds'
+	[-36000]='600 minutes = 10 hours = 0.4 days'
+	[3600]='3600 seconds = 60 minutes = 1 hour'
+    )
+
+    for seconds in "${!data[@]}"
+    do
+	run -0 datediff --no-direction --output-positive --seconds "$seconds" \
+	    && assert_output "${data["$seconds"]}" \
+	    || fail "$seconds"
+    done
+}
+
+@test "passed seconds diff --no-direction --output-inverted" {
+    typeset -A data=(
+	[0]='at a single point in time = 0 seconds'
+	[-36000]='600 minutes = 10 hours = 0.4 days'
+	[3600]='-3600 seconds = -60 minutes = -1 hour'
+    )
+
+    for seconds in "${!data[@]}"
+    do
+	run -0 datediff --no-direction --output-inverted --seconds "$seconds" \
+	    && assert_output "${data["$seconds"]}" \
+	    || fail "$seconds"
+    done
+}
+
 @test "passed days diff --no-direction" {
     typeset -A data=(
 	[0]='0 days'
@@ -112,6 +142,44 @@ load fixture
     for days in "${!data[@]}"
     do
 	run -0 datediff --no-direction --days "$days" \
+	    && assert_output "${data["$days"]}" \
+	    || fail "$days"
+    done
+}
+
+@test "passed days diff --no-direction --output-positive" {
+    typeset -A data=(
+	[0]='0 days'
+	[1]='1 day = 0.1 weeks'
+	[-1]='1 day = 0.1 weeks'
+	[2]='2 days = 0.3 weeks'
+	[-2]='2 days = 0.3 weeks'
+	[256]='256 days = 36.6 weeks = 8.5 months = 0.7 years = 8mo 1w 5d 16h'
+	[-18081]='2583 weeks = 602.7 months = 49.5 years = 2 generations = 1g 19y 6mo 6d 5h 24m'
+    )
+
+    for days in "${!data[@]}"
+    do
+	run -0 datediff --no-direction --output-positive --days "$days" \
+	    && assert_output "${data["$days"]}" \
+	    || fail "$days"
+    done
+}
+
+@test "passed days diff --no-direction --output-inverted" {
+    typeset -A data=(
+	[0]='0 days'
+	[1]='-1 day = -0.1 weeks'
+	[-1]='1 day = 0.1 weeks'
+	[2]='-2 days = -0.3 weeks'
+	[-2]='2 days = 0.3 weeks'
+	[256]='-256 days = -36.6 weeks = -8.5 months = -0.7 years = -8mo 1w 5d 16h'
+	[-18081]='2583 weeks = 602.7 months = 49.5 years = 2 generations = 1g 19y 6mo 6d 5h 24m'
+    )
+
+    for days in "${!data[@]}"
+    do
+	run -0 datediff --no-direction --output-inverted --days "$days" \
 	    && assert_output "${data["$days"]}" \
 	    || fail "$days"
     done
