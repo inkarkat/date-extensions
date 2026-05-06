@@ -131,10 +131,8 @@ ensureSingleDifference()
     exit 2
 }
 
-isNegated=
 parseAge()
 {
-    local isNegate="${1?}"; shift
     case "${1?}" in
 	?(-)+([0-9])?(s))		    age="${1%s}";;
 	?(-)+([0-9])m)			    age=$((${1%m} * 60));;
@@ -144,12 +142,8 @@ parseAge()
 	?(-)+([0-9])mo)			    age=$((${1%mo} * 86400 * 30));;
 	?(-)+([0-9])y)			    age=$((${1%y} * 86400 * 365));;
 	?(-)+([0-9])g)			    age=$((${1%g} * 86400 * 9131));;
-	*)				    printf >&2 'ERROR: Invalid AGE: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2;;
+	*)				    return 1;;
     esac
-    if [ "$isNegate" ]; then
-	let age=-age
-	isNegated=t
-    fi
 }
 timeformat='%s'
 parseTimeslot()
@@ -162,8 +156,15 @@ parseTimeslot()
 	w?(eek))			    timeformat='%G_%V';;
 	mo?(nth))			    timeformat='%Y_%m';;
 	y?(ear))			    timeformat='%Y';;
-	*)				    printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2;;
+	*)				    return 1;;
     esac
+}
+isNegated=
+parseAgeOrTimeslot()
+{
+    parseAge "$@" || { printf >&2 'ERROR: Invalid AGE: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }
+    let age=-age
+    isNegated=t
 }
 
 typeset -a dateArgs=()
@@ -220,12 +221,12 @@ do
 	--seconds|-s)	shift; ensureSingleDifference; secondsDiff="${1:?}"; shift; hasDifference=t; parameter;;
 	--days|-d)	shift; ensureSingleDifference; daysDiff="${1:?}"; shift; hasDifference=t; parameter;;
 
-	--newer)	shift; parseAge t "${1:?}"; shift; spanCompareOp=-gt; parameter;;
-	--older)	shift; parseAge t "${1:?}"; shift; spanCompareOp=-lt; parameter;;
+	--newer)	shift; parseAgeOrTimeslot "${1:?}"; shift; spanCompareOp=-gt; parameter;;
+	--older)	shift; parseAgeOrTimeslot "${1:?}"; shift; spanCompareOp=-lt; parameter;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; parseAge '' "${1:?}"; shift; parameter;;
-	--within|-w)	shift; parseTimeslot "${1:?}"; formatCompareOp='='; shift; parameter;;
-	--outside|-W)	shift; parseTimeslot "${1:?}"; formatCompareOp='!='; shift; parameter;;
+			spanCompareOp="$1"; shift; parseAge "${1:?}" || { printf >&2 'ERROR: Invalid AGE: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
+	--within|-w)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='='; shift; parameter;;
+	--outside|-W)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='!='; shift; parameter;;
 
 	--file|-f)	shift; filespecs+=("${1:?}"); shift; dateArgOffset=0; parameter;;
 	--file=*)	filespecs+=("${1#--file=}"); shift; dateArgOffset=0; option;;
