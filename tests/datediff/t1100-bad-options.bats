@@ -4,7 +4,7 @@ load fixture
 
 @test "combining --seconds with -eq prints error" {
     run -2 datediff -eq 0 --seconds 1
-    assert_line -n 0 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
+    assert_line -n 0 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|-w|--within|-W|--outside.'
     assert_line -n 1 -e '^Usage:'
 }
 
@@ -47,7 +47,7 @@ load fixture
 
 @test "both --seconds and --newer prints error" {
     run -2 datediff --seconds 1 --newer 1 2026-04-20
-    assert_line -n 0 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
+    assert_line -n 0 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|-w|--within|-W|--outside.'
     assert_line -n 1 -e '^Usage:'
 }
 
@@ -71,7 +71,7 @@ load fixture
     for cmpOp in --newer --older
     do
 	run -2 datediff --absolute $cmpOp 1s 2026-04-20 \
-	    && assert_line -n 0 'ERROR: Cannot combine -a|--absolute with --newer|--older; use -lt|-le|-eq|-ne|-ge|-gt / --within|-w|--outside|-W instead.' \
+	    && assert_line -n 0 'ERROR: Cannot combine -a|--absolute with --newer|--older; use -lt|-le|-eq|-ne|-ge|-gt / -w|--within|-W|--outside instead.' \
 	    && assert_line -n 1 -e '^Usage:' \
 	    || fail "$cmpOp -1s"
     done

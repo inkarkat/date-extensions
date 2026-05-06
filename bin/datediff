@@ -20,12 +20,13 @@ readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--
 readonly ageParameters='[-]AGE[s|m|h|d|w|mo|y|g]'
 readonly timeslotParameters='s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear]'
 readonly newerOlderOptions='--newer|--older'
-readonly comparisonArgs='-lt|-le|-eq|-ne|-ge|-gt [-]AGE[SUFFIX] [-a|--absolute]'
+readonly comparisonOptions='-lt|-le|-eq|-ne|-ge|-gt'
+readonly comparisonArgs="$comparisonOptions [-]AGE[SUFFIX] [-a|--absolute]"
 readonly timeslotOptions='-w|--within|-W|--outside'
 getShortUsage()
 {
-    local -r newerOlderArgs="--newer|--older ${ageParameters}|TIMESLOT"
-    local -r timeslotArgs="-w|--within|-W|--outside ${timeslotParameters}"
+    local -r newerOlderArgs="$newerOlderOptions ${ageParameters}|TIMESLOT"
+    local -r timeslotArgs="$timeslotOptions $timeslotParameters"
     case "$1" in
 	newer-older-parameters)
 	    printf %s "${ageParameters}|${timeslotParameters}";;
@@ -59,9 +60,9 @@ HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} is greater / smaller than AGE.
 Can be combined with -o|--output to print the actual difference if the test
 fails.
-Note: -lt|-le|-eq|-ne|-ge|-gt are purely mathematical comparisons with the
+Note: $comparisonOptions are purely mathematical comparisons with the
 difference of DATE|TIME to now / the second passed DATE|TIME to the first.
---newer|--older instead are (signed) age comparisons; future dates / dates where
+$newerOlderOptions instead are (signed) age comparisons; future dates / dates where
 the second passed DATE|TIME is greater than the first are always newer (unless
 -AGE, which asserts that it must be at least AGE in the future) and never older.
 This is different from a comparison with --absolute, which would treat
@@ -76,8 +77,8 @@ HELPDESCRIPTION
     echo
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} falls inside / outside TIMESLOT.
-Use --newer|--older instead of --within|--outside if you want future dates /
-dates where the second passed DATE|TIME is greater than the first to always
+Use $newerOlderOptions instead of $timeslotOptions if you want future dates
+/ dates where the second passed DATE|TIME is greater than the first to always
 succeed the comparision; i.e. if you only care about falling outside the
 timeslot in the past.
 TIMESLOT can be one of ${timeslotParameters}.
@@ -267,14 +268,14 @@ if [ "$hasDifference" ] && [ ${#filespecs[@]} -gt 0 ]; then
     printUsage "$0"
     exit 2
 elif [ "$isNegated" ] && [ "$isAbsolute" ]; then
-    echo 'ERROR: Cannot combine -a|--absolute with --newer|--older; use -lt|-le|-eq|-ne|-ge|-gt / --within|-w|--outside|-W instead.'
+    echo "ERROR: Cannot combine -a|--absolute with $newerOlderOptions; use $comparisonOptions / $timeslotOptions instead."
     echo
     printUsage "$0"
     exit 2
 fi >&2
 if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
     if [ "$hasDifference" ]; then
-	echo 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
+	echo "ERROR: Cannot combine -s|--seconds|-d|--days with ${newerOlderOptions}|${comparisonOptions}|${timeslotOptions}."
 	echo
 	printUsage "$0"
 	exit 2
