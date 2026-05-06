@@ -17,7 +17,7 @@ readonly DATE='2026-05-12 20:05:00'
     assert_output 'in 3w 1d 10h 5m'
 
     run -0 datediff --output precise --long-units "$DATE"
-    assert_output 'in 3 weeks 1 day 10 hours 5 minutes'
+    assert_output 'in 3 weeks, 1 day, 10 hours and 5 minutes'
 }
 
 @test "precision output understands --precision" {
