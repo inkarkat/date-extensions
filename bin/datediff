@@ -17,15 +17,24 @@ readonly generalArgs='[-u|--utc|--universal]'
 readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|precise|all|textform'
 readonly precisionArgs='[--prefer-clock] [--long-units] [--precision|-p N|[U|Z][.N](w|d|h|m|s) | --precision-width|-P WIDTH] [-w|--width [+]WIDTH]'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
-readonly newerOlderArgs='--newer|--older [-]AGE[SUFFIX]'
-readonly comparisonArgs='-lt|-le|-eq|-ne|-ge|-gt [-]AGE[SUFFIX] [-a|--absolute]'
-readonly timeslotArgs='-w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear]'
+readonly ageParameters='[-]AGE[s|m|h|d|w|mo|y|g]'
+readonly timeslotParameters='s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear]'
+readonly newerOlderOptions='--newer|--older'
+readonly comparisonOptions='-lt|-le|-eq|-ne|-ge|-gt'
+readonly comparisonArgs="$comparisonOptions [-]AGE[SUFFIX] [-a|--absolute]"
+readonly timeslotOptions='-w|--within|-W|--outside'
 getShortUsage()
 {
+    local -r newerOlderArgs="$newerOlderOptions ${ageParameters}|TIMESLOT"
+    local -r timeslotArgs="$timeslotOptions $timeslotParameters"
     case "$1" in
-	comparisons)	printf %s "${newerOlderArgs}|${comparisonArgs}|${timeslotArgs}";;
-	output)		printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction]";;
-	*)		printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction] [${newerOlderArgs}|${comparisonArgs}|${timeslotArgs}]";;
+	newer-older-parameters)
+	    printf %s "${ageParameters}|${timeslotParameters}";;
+	comparisons)
+	    printf %s "${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}";;
+	output)
+	    printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction]";;
+	*)  printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction] [${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}]";;
     esac
 }
 printShortUsage()
@@ -51,9 +60,9 @@ HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} is greater / smaller than AGE.
 Can be combined with -o|--output to print the actual difference if the test
 fails.
-Note: -lt|-le|-eq|-ne|-ge|-gt are purely mathematical comparisons with the
+Note: $comparisonOptions are purely mathematical comparisons with the
 difference of DATE|TIME to now / the second passed DATE|TIME to the first.
---newer|--older instead are (signed) age comparisons; future dates / dates where
+$newerOlderOptions instead are (signed) age comparisons; future dates / dates where
 the second passed DATE|TIME is greater than the first are always newer (unless
 -AGE, which asserts that it must be at least AGE in the future) and never older.
 This is different from a comparison with --absolute, which would treat
@@ -63,15 +72,19 @@ SUFFIX may be 's' for seconds (the default), 'm' for minutes, 'h' for hours, 'd'
 for days, 'w' for weeks, 'mo' for months, 'y' for years, 'g' for generations.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderArgs $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderOptions [-]AGE[SUFFIX]|TIMESLOT $DATEDIFF_INPUT_ARGS"
     printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonArgs $DATEDIFF_INPUT_ARGS"
     echo
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} falls inside / outside TIMESLOT.
-TIMESLOT can be one of second|minute|hour|day|week|month|year.
+Use $newerOlderOptions instead of $timeslotOptions if you want future dates
+/ dates where the second passed DATE|TIME is greater than the first to always
+succeed the comparision; i.e. if you only care about falling outside the
+timeslot in the past.
+TIMESLOT can be one of ${timeslotParameters}.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $timeslotArgs $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $timeslotOptions TIMESLOT $DATEDIFF_INPUT_ARGS"
 }
 printUsage()
 {
@@ -131,10 +144,8 @@ ensureSingleDifference()
     exit 2
 }
 
-isNegated=
 parseAge()
 {
-    local isNegate="${1?}"; shift
     case "${1?}" in
 	?(-)+([0-9])?(s))		    age="${1%s}";;
 	?(-)+([0-9])m)			    age=$((${1%m} * 60));;
@@ -144,12 +155,8 @@ parseAge()
 	?(-)+([0-9])mo)			    age=$((${1%mo} * 86400 * 30));;
 	?(-)+([0-9])y)			    age=$((${1%y} * 86400 * 365));;
 	?(-)+([0-9])g)			    age=$((${1%g} * 86400 * 9131));;
-	*)				    printf >&2 'ERROR: Invalid AGE: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2;;
+	*)				    return 1;;
     esac
-    if [ "$isNegate" ]; then
-	let age=-age
-	isNegated=t
-    fi
 }
 timeformat='%s'
 parseTimeslot()
@@ -162,8 +169,30 @@ parseTimeslot()
 	w?(eek))			    timeformat='%G_%V';;
 	mo?(nth))			    timeformat='%Y_%m';;
 	y?(ear))			    timeformat='%Y';;
-	*)				    printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2;;
+	*)				    return 1;;
     esac
+}
+isNegated=
+spanCompareOp=
+formatCompareOp=
+combinedCompareOp='-eq'
+parseAgeOrTimeslot()
+{
+    local potentialSpanCompareOp="${1:?}"; shift
+    local potentialCombinedCompareOp="${1:?}"; shift
+
+    if parseTimeslot "$@"; then
+	spanCompareOp='-ge'
+	age=0
+	formatCompareOp='='
+	combinedCompareOp="$potentialCombinedCompareOp"
+    elif parseAge "$@"; then
+	spanCompareOp="$potentialSpanCompareOp"
+	let age=-age
+    else
+	return 1
+    fi
+    isNegated=t
 }
 
 typeset -a dateArgs=()
@@ -178,8 +207,6 @@ outputFormat="$DATEDIFF_OUTPUT_FORMAT"
 typeset -a secondsToDurationArgs=()
 prefix=
 suffix=
-spanCompareOp=
-formatCompareOp=
 typeset -a filespecs=()
 dateArgOffset=1
 option() { :; }
@@ -220,12 +247,12 @@ do
 	--seconds|-s)	shift; ensureSingleDifference; secondsDiff="${1:?}"; shift; hasDifference=t; parameter;;
 	--days|-d)	shift; ensureSingleDifference; daysDiff="${1:?}"; shift; hasDifference=t; parameter;;
 
-	--newer)	shift; parseAge t "${1:?}"; shift; spanCompareOp=-gt; parameter;;
-	--older)	shift; parseAge t "${1:?}"; shift; spanCompareOp=-lt; parameter;;
+	--newer)	shift; parseAgeOrTimeslot -gt -eq "${1:?}" || { printf >&2 'ERROR: Invalid AGE or TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
+	--older)	shift; parseAgeOrTimeslot -lt -ne "${1:?}" || { printf >&2 'ERROR: Invalid AGE or TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; parseAge '' "${1:?}"; shift; parameter;;
-	--within|-w)	shift; parseTimeslot "${1:?}"; formatCompareOp='='; shift; parameter;;
-	--outside|-W)	shift; parseTimeslot "${1:?}"; formatCompareOp='!='; shift; parameter;;
+			spanCompareOp="$1"; shift; parseAge "${1:?}" || { printf >&2 'ERROR: Invalid AGE: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
+	--within|-w)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='='; shift; parameter;;
+	--outside|-W)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='!='; shift; parameter;;
 
 	--file|-f)	shift; filespecs+=("${1:?}"); shift; dateArgOffset=0; parameter;;
 	--file=*)	filespecs+=("${1#--file=}"); shift; dateArgOffset=0; option;;
@@ -241,14 +268,14 @@ if [ "$hasDifference" ] && [ ${#filespecs[@]} -gt 0 ]; then
     printUsage "$0"
     exit 2
 elif [ "$isNegated" ] && [ "$isAbsolute" ]; then
-    echo 'ERROR: Cannot combine -a|--absolute with --newer|--older; use -lt|-le|-eq|-ne|-ge|-gt instead.'
+    echo "ERROR: Cannot combine -a|--absolute with $newerOlderOptions; use $comparisonOptions / $timeslotOptions instead."
     echo
     printUsage "$0"
     exit 2
 fi >&2
 if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
     if [ "$hasDifference" ]; then
-	echo 'ERROR: Cannot combine -s|--seconds|-d|--days with --newer|--older|-lt|-le|-eq|-ne|-ge|-gt|--within|-w|--outside|-W.'
+	echo "ERROR: Cannot combine -s|--seconds|-d|--days with ${newerOlderOptions}|${comparisonOptions}|${timeslotOptions}."
 	echo
 	printUsage "$0"
 	exit 2
@@ -377,23 +404,28 @@ diffOneDate()
     typeset -a diffInUnits=()
     local status=0
     if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
+	local secondsDiff=
 	parseDates "$@" || return $?
-	if \
-	    if [ -n "$formatCompareOp" ]; then
-		[ "$d1" $formatCompareOp "$d2" ]
-	    else
-		local secondsDiff=$((d2 - d1))
-		[ "$isAbsolute" ] \
-		    && secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
-		[ $secondsDiff ${spanCompareOp:?} $age ]
-	    fi
+	{
+	    [ -n "$formatCompareOp" ] \
+		&& [ "$d1" $formatCompareOp "$d2" ]
+	} || {
+		[ -n "$spanCompareOp" ] && {
+		    [ "$timeformat" = '%s' ] || timeformat='%s' parseDates "$@" || return $?
+		    secondsDiff=$((d2 - d1))
+		    [ "$isAbsolute" ] \
+			&& secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
+		    [ $secondsDiff ${spanCompareOp:?} $age ]
+		}
+	}; status=$?
+	if [ $status $combinedCompareOp 0 ];
 	then
 	    return 0
 	else
 	    isOutput || return 1
-	    if [ -n "$formatCompareOp" ]; then
+	    if [ -z "$secondsDiff" ]; then
 		timeformat='%s' parseDates "$@"
-		local secondsDiff=$((d2 - d1))
+		secondsDiff=$((d2 - d1))
 	    fi
 	    status=1
 	fi
