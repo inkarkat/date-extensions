@@ -51,10 +51,14 @@ load fixture
     assert_line -n 1 -e '^Usage:'
 }
 
-@test "invalid AGE prints error" {
-    run -2 datediff --newer 12x 2026-04-20
-    assert_line -n 0 'ERROR: Invalid AGE: "12x".'
-    assert_line -n 1 -e '^Usage:'
+@test "invalid --newer parameter prints error" {
+    for value in '12x' 'generational'
+    do
+	run -2 datediff --newer "$value" 2026-04-20 \
+	    && assert_line -n 0 "ERROR: Invalid AGE or TIMESLOT: \"${value}\"." \
+	    && assert_line -n 1 -e '^Usage:' \
+	    || fail "$value"
+    done
 }
 
 @test "invalid TIMESLOT prints error" {
@@ -67,7 +71,7 @@ load fixture
     for cmpOp in --newer --older
     do
 	run -2 datediff --absolute $cmpOp 1s 2026-04-20 \
-	    && assert_line -n 0 'ERROR: Cannot combine -a|--absolute with --newer|--older; use -lt|-le|-eq|-ne|-ge|-gt instead.' \
+	    && assert_line -n 0 'ERROR: Cannot combine -a|--absolute with --newer|--older; use -lt|-le|-eq|-ne|-ge|-gt / --within|-w|--outside|-W instead.' \
 	    && assert_line -n 1 -e '^Usage:' \
 	    || fail "$cmpOp -1s"
     done
