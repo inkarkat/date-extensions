@@ -28,13 +28,14 @@ getShortUsage()
     local -r newerOlderArgs="$newerOlderOptions ${ageParameters}|TIMESLOT"
     local -r timeslotArgs="$timeslotOptions $timeslotParameters"
     case "$1" in
+	'') printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction] [${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}]";;
 	newer-older-parameters)
 	    printf %s "${ageParameters}|${timeslotParameters}";;
 	comparisons)
 	    printf %s "${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}";;
 	output)
 	    printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction]";;
-	*)  printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction] [${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}]";;
+	*)  echo "ERROR: Unknown short usage topic \"$1\"!" >&2; exit 2;;
     esac
 }
 printShortUsage()
