@@ -4,7 +4,7 @@ _Additions and tweaks around the date command in particular and ages and dates i
 
 ## Dependencies
 
-* [inkarkat/shell-filters](https://github.com/inkarkat/shell-filters) for `datediff --output precise` formatting
+* [inkarkat/shell-filters](https://github.com/inkarkat/shell-filters) for `datediff`
 * automated testing is done with _bats - Bash Automated Testing System_ (https://github.com/bats-core/bats-core)
 
 ### Installation

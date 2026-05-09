@@ -2,12 +2,12 @@
 
 load fixture
 
-@test "compare diff between now and date against age does not do output on success" {
-    while IFS=$'\t' read -r datetime cmpOp age expectedStatus
+@test "compare diff between now and date against timespan does not do output on success" {
+    while IFS=$'\t' read -r datetime cmpOp timespan expectedStatus
     do
-	run -0 datediff --output best-unit $cmpOp "$age" "$datetime" \
+	run -0 datediff --output best-unit $cmpOp "$timespan" "$datetime" \
 	    && assert_output '' \
-	    || fail "$cmpOp $age ${datetime@Q} ${NOW_DATE@Q}"
+	    || fail "$cmpOp $timespan ${datetime@Q} ${NOW_DATE@Q}"
     done <<-EOF
 $NOW_DATE	-eq	0
 $NOW_DATE	-le	0
@@ -28,12 +28,12 @@ $NOW_DATE	-ge	0
 EOF
 }
 
-@test "compare diff between now and date against age outputs best-unit difference on failure" {
-    while IFS=$'\t' read -r datetime cmpOp age expectedOutput
+@test "compare diff between now and date against timespan outputs best-unit difference on failure" {
+    while IFS=$'\t' read -r datetime cmpOp timespan expectedOutput
     do
-	run -1 datediff --output best-unit $cmpOp "$age" "$datetime" \
+	run -1 datediff --output best-unit $cmpOp "$timespan" "$datetime" \
 	    && assert_output "$expectedOutput" \
-	    || fail "$cmpOp $age ${datetime@Q} ${NOW_DATE@Q}"
+	    || fail "$cmpOp $timespan ${datetime@Q} ${NOW_DATE@Q}"
     done <<-EOF
 $NOW_DATE	-ne	0	just now
 $NOW_DATE	-gt	0	just now
@@ -53,12 +53,12 @@ $NOW_DATE	-lt	0	just now
 EOF
 }
 
-@test "compare diff between two dates against age outputs whole-units difference on failure" {
-    while IFS=$'\t' read -r datetime1 datetime2 cmpOp age expectedOutput
+@test "compare diff between two dates against timespan outputs whole-units difference on failure" {
+    while IFS=$'\t' read -r datetime1 datetime2 cmpOp timespan expectedOutput
     do
-	run -1 datediff --output whole-units $cmpOp "$age" "$datetime1" "$datetime2" \
+	run -1 datediff --output whole-units $cmpOp "$timespan" "$datetime1" "$datetime2" \
 	    && assert_output "$expectedOutput" \
-	    || fail "$cmpOp $age ${datetime1@Q} ${datetime2@Q}"
+	    || fail "$cmpOp $timespan ${datetime1@Q} ${datetime2@Q}"
     done <<-EOF
 $NOW_DATE	$NOW_DATE	-ne	0	just now
 $NOW_DATE	$NOW_DATE	-gt	0	just now
