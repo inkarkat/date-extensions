@@ -2,13 +2,13 @@
 
 load fixture
 
-@test "compare diff between now and date against age" {
-    while IFS=$'\t' read -r datetime cmpOp age expectedStatus
+@test "compare diff between now and date against timespan" {
+    while IFS=$'\t' read -r datetime cmpOp timespan expectedStatus
     do
-	run datediff $cmpOp "$age" "$datetime" \
+	run datediff $cmpOp "$timespan" "$datetime" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$cmpOp $age ${datetime@Q} ${NOW_DATE@Q}"
+	    || fail "$cmpOp $timespan ${datetime@Q} ${NOW_DATE@Q}"
     done <<-EOF
 $NOW_DATE	-eq	0	0
 $NOW_DATE	-ne	0	1
@@ -48,13 +48,13 @@ $NOW_DATE	-ge	0	0
 EOF
 }
 
-@test "compare diff between two dates against age" {
-    while IFS=$'\t' read -r datetime1 datetime2 cmpOp age expectedStatus
+@test "compare diff between two dates against timespan" {
+    while IFS=$'\t' read -r datetime1 datetime2 cmpOp timespan expectedStatus
     do
-	run datediff $cmpOp "$age" "$datetime1" "$datetime2" \
+	run datediff $cmpOp "$timespan" "$datetime1" "$datetime2" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$cmpOp $age ${datetime1@Q} ${datetime2@Q}"
+	    || fail "$cmpOp $timespan ${datetime1@Q} ${datetime2@Q}"
     done <<-EOF
 $NOW_DATE	$NOW_DATE	-eq	0	0
 $NOW_DATE	$NOW_DATE	-ne	0	1
@@ -94,13 +94,13 @@ $NOW_DATE	1976-10-20	-ge	2g	1
 EOF
 }
 
-@test "compare absolute diff between two dates against age" {
-    while IFS=$'\t' read -r datetime1 datetime2 cmpOp age expectedStatus
+@test "compare absolute diff between two dates against timespan" {
+    while IFS=$'\t' read -r datetime1 datetime2 cmpOp timespan expectedStatus
     do
-	run datediff --absolute $cmpOp "$age" "$datetime1" "$datetime2" \
+	run datediff --absolute $cmpOp "$timespan" "$datetime1" "$datetime2" \
 	    && assert_equal $status $expectedStatus \
 	    && assert_output '' \
-	    || fail "$cmpOp $age ${datetime1@Q} ${datetime2@Q}"
+	    || fail "$cmpOp $timespan ${datetime1@Q} ${datetime2@Q}"
     done <<-EOF
 $NOW_DATE	2026-04-20 09:59:59	-eq	0s	1
 $NOW_DATE	2026-04-20 09:59:59	-eq	-1s	1

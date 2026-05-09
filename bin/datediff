@@ -171,12 +171,12 @@ parseAgeOrTimeslot()
 
     if parseTimeslot "${1:?}"; then
 	spanCompareOp='-ge'
-	age=0
+	timespan=0
 	formatCompareOp='='
 	combinedCompareOp="$potentialCombinedCompareOp"
-    elif age=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}"); then
+    elif timespan=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}"); then
 	spanCompareOp="$potentialSpanCompareOp"
-	let age=-age
+	let timespan=-timespan
     else
 	return 1
     fi
@@ -238,7 +238,7 @@ do
 	--newer)	shift; parseAgeOrTimeslot -gt -eq "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
 	--older)	shift; parseAgeOrTimeslot -lt -ne "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; age=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}") || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift;;
+			spanCompareOp="$1"; shift; timespan=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}") || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift;;
 	--within|-w)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='='; shift; parameter;;
 	--outside|-W)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='!='; shift; parameter;;
 
@@ -403,7 +403,7 @@ diffOneDate()
 		    secondsDiff=$((d2 - d1))
 		    [ "$isAbsolute" ] \
 			&& secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
-		    [ $secondsDiff ${spanCompareOp:?} $age ]
+		    [ $secondsDiff ${spanCompareOp:?} $timespan ]
 		}
 	}; status=$?
 	if [ $status $combinedCompareOp 0 ];
