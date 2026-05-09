@@ -145,24 +145,10 @@ ensureSingleDifference()
     exit 2
 }
 
-parseAge()
-{
-    case "${1?}" in
-	?(-)+([0-9])?(s))		    age="${1%s}";;
-	?(-)+([0-9])m)			    age=$((${1%m} * 60));;
-	?(-)+([0-9])h)			    age=$((${1%h} * 3600));;
-	?(-)+([0-9])d)			    age=$((${1%d} * 86400));;
-	?(-)+([0-9])w)			    age=$((${1%w} * 86400 * 7));;
-	?(-)+([0-9])mo)			    age=$((${1%mo} * 86400 * 30));;
-	?(-)+([0-9])y)			    age=$((${1%y} * 86400 * 365));;
-	?(-)+([0-9])g)			    age=$((${1%g} * 86400 * 9131));;
-	*)				    return 1;;
-    esac
-}
 timeformat='%s'
 parseTimeslot()
 {
-    case "$1" in
+    case "${1:?}" in
 	s?(econd))			    timeformat='%s';;
 	m?(inute))			    timeformat='%F_%H:%M';;
 	h?(our))			    timeformat='%F_%H';;
@@ -182,12 +168,12 @@ parseAgeOrTimeslot()
     local potentialSpanCompareOp="${1:?}"; shift
     local potentialCombinedCompareOp="${1:?}"; shift
 
-    if parseTimeslot "$@"; then
+    if parseTimeslot "${1:?}"; then
 	spanCompareOp='-ge'
 	age=0
 	formatCompareOp='='
 	combinedCompareOp="$potentialCombinedCompareOp"
-    elif parseAge "$@"; then
+    elif age=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}"); then
 	spanCompareOp="$potentialSpanCompareOp"
 	let age=-age
     else
@@ -251,7 +237,7 @@ do
 	--newer)	shift; parseAgeOrTimeslot -gt -eq "${1:?}" || { printf >&2 'ERROR: Invalid AGE or TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
 	--older)	shift; parseAgeOrTimeslot -lt -ne "${1:?}" || { printf >&2 'ERROR: Invalid AGE or TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; parseAge "${1:?}" || { printf >&2 'ERROR: Invalid AGE: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
+			spanCompareOp="$1"; shift; age=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}") || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift;;
 	--within|-w)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='='; shift; parameter;;
 	--outside|-W)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='!='; shift; parameter;;
 
