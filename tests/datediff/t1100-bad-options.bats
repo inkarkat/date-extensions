@@ -51,11 +51,21 @@ load fixture
     assert_line -n 1 -e '^Usage:'
 }
 
+@test "invalid -lt parameter prints error" {
+    for value in '12x' 'generational'
+    do
+	run -2 datediff -lt "$value" 2026-04-20 \
+	    && assert_line -n 0 "ERROR: Illegal TIMESPAN: $value" \
+	    && assert_line -n 1 -e '^Usage:' \
+	    || fail "$value"
+    done
+}
+
 @test "invalid --newer parameter prints error" {
     for value in '12x' 'generational'
     do
 	run -2 datediff --newer "$value" 2026-04-20 \
-	    && assert_line -n 0 "ERROR: Invalid AGE or TIMESLOT: \"${value}\"." \
+	    && assert_line -n 0 "ERROR: Illegal TIMESPAN or TIMESLOT: $value" \
 	    && assert_line -n 1 -e '^Usage:' \
 	    || fail "$value"
     done
