@@ -21,20 +21,21 @@ readonly timeslotParameters='s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear
 readonly newerOlderOptions='--newer|--older'
 readonly comparisonOptions='-lt|-le|-eq|-ne|-ge|-gt'
 readonly timeslotOptions='-w|--within|-W|--outside'
+readonly outputInfluencingOptions='[--short-units] [-A|--always-output] [-a|--absolute|[--output-positive|--output-inverted] [--no-direction]]'
 getShortUsage()
 {
     local -r newerOlderArgs="$newerOlderOptions [-]TIMESPAN|TIMESLOT"
     local -r timeslotArgs="$timeslotOptions $timeslotParameters"
     local -r timespanFormat="$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds --get-short-usage format 2>/dev/null)"
-    local -r comparisonArgs="$comparisonOptions $timespanFormat [-a|--absolute]"
+    local -r comparisonArgs="$comparisonOptions $timespanFormat"
     case "$1" in
-	'') printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction] [${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}]";;
+	'') printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions [${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}]";;
 	newer-older-parameters)
 	    printf %s "${timespanFormat}|${timeslotParameters}";;
 	comparisons)
 	    printf %s "${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}";;
 	output)
-	    printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [--output-positive|--output-inverted] [--no-direction]";;
+	    printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions";;
 	*)  echo "ERROR: Unknown short usage topic \"$1\"!" >&2; exit 2;;
     esac
 }
@@ -46,7 +47,7 @@ printShortUsage()
 Calculate ${DATEDIFF_WHAT}, and print it in flexible units depending on the magnitude of the difference.
 HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs [--short-units] [-a|--absolute|[--output-positive|--output-inverted] [--no-direction]] $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions $DATEDIFF_INPUT_ARGS"
     echo
     if [ ! "$hasCustomWhat" ]; then
 	cat <<HELPDESCRIPTION
@@ -54,14 +55,14 @@ Print the passed difference in seconds or days in flexible units depending on
 the magnitude of the difference.
 HELPDESCRIPTION
 	echo
-	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs -s|--seconds|-d|--days NUM [--short-units] [-a|--absolute|[--output-positive|--output-inverted] [--no-direction]]"
+	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs -s|--seconds|-d|--days NUM $outputInfluencingOptions"
 	echo
     fi
     local timespanFormat="$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds --get-short-usage format 2>/dev/null)"
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} is greater / smaller than TIMESPAN.
-Can be combined with -o|--output to print the actual difference if the test
-fails.
+Can be combined with -o|--output to print the actual difference [if the test
+fails, unless forced with -A|--always-output].
 Note: $comparisonOptions are purely mathematical comparisons with the
 difference of DATE|TIME to now / the second passed DATE|TIME to the first.
 $newerOlderOptions instead are (signed) age comparisons; future dates / dates where
@@ -75,7 +76,7 @@ TIMESPAN can be ${timespanFormat}.
 HELPDESCRIPTION
     echo
     printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderOptions [-]TIMESPAN|TIMESLOT $DATEDIFF_INPUT_ARGS"
-    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonOptions [-]TIMESPAN [-a|--absolute] $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonOptions [-]TIMESPAN $DATEDIFF_INPUT_ARGS"
     echo
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} falls inside / outside TIMESLOT.
@@ -112,6 +113,9 @@ whereas "-le 1d" would yield true as long as the actual difference is within
     --absolute|-a	Print / compare against the absolute (positive)
 			difference, i.e. ignore which of the two dates is
 			earlier / the sign of the passed difference.
+    --always-output|-A	Normally, when a comparison is made and succeeds, the
+			difference is not printed; with this flag, it is always
+			printed.
     --short-units	Use "2m" instead of "2 minutes".
     --output-positive	Omit a negative sign on negative differences (in the
 			output, but unlike --absolute not in the comparison).
@@ -192,6 +196,7 @@ hasDifference=
 secondsDiff=
 daysDiff=
 outputFormat="$DATEDIFF_OUTPUT_FORMAT"
+isAlwaysOutput=
 typeset -a secondsToDurationArgs=()
 prefix=
 suffix=
@@ -218,6 +223,8 @@ do
 	--universal|--utc|-u)
 			dateArgs+=("$1"); shift; option;;
 	--absolute|-a)	shift; isAbsolute=t; option;;
+	--always-output|-A)
+			shift; isAlwaysOutput=t; option;;
 	--short-units)	shift; isShortUnits=t; option;;
 	--output-positive)
 			shift; outputSign=positive; option;;
@@ -408,14 +415,15 @@ diffOneDate()
 	}; status=$?
 	if [ $status $combinedCompareOp 0 ];
 	then
-	    return 0
+	    [ "$isAlwaysOutput" ] && isOutput || return 0
+	    status=0
 	else
 	    isOutput || return 1
-	    if [ -z "$secondsDiff" ]; then
-		timeformat='%s' parseDates "$@"
-		secondsDiff=$((d2 - d1))
-	    fi
 	    status=1
+	fi
+	if [ -z "$secondsDiff" ]; then
+	    timeformat='%s' parseDates "$@"
+	    secondsDiff=$((d2 - d1))
 	fi
     elif [ -n "$secondsDiff" ]; then
 	:

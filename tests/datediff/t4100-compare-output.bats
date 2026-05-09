@@ -3,7 +3,7 @@
 load fixture
 
 @test "compare diff between now and date against timespan does not do output on success" {
-    while IFS=$'\t' read -r datetime cmpOp timespan expectedStatus
+    while IFS=$'\t' read -r datetime cmpOp timespan
     do
 	run -0 datediff --output best-unit $cmpOp "$timespan" "$datetime" \
 	    && assert_output '' \
