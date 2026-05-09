@@ -139,3 +139,23 @@ $NOW_DATE	1976-10-20	-ge	2g	1
 1976-10-20	$NOW_DATE	-ge	2g	1
 EOF
 }
+
+@test "compare diff between now and date against compound timespan" {
+    while IFS=$'\t' read -r datetime cmpOp timespan expectedStatus
+    do
+	run datediff $cmpOp "$timespan" "$datetime" \
+	    && assert_equal $status $expectedStatus \
+	    && assert_output '' \
+	    || fail "$cmpOp ${timespan@Q} ${datetime@Q} ${NOW_DATE@Q}"
+    done <<-EOF
+2026-04-20 11:30:00	--newer	-1h 29m	0
+2026-04-20 11:30:00	--newer	-1h 29m 59s	0
+2026-04-20 11:30:00	--newer	-1h 30m	1
+2026-06-01	-eq	1mo 1w 4d 4h	0
+2026-06-01	-lt	1mo 1w 4d 4h 1s	0
+2026-06-01	-lt	1mo 1w 4d 5h	0
+1976-10-20	-eq	-1g 19y 6mo 4d 14h 24m	0
+1976-10-20	-lt	-1g 19y 6mo 4d 14h 23m	0
+1976-10-20	-lt	-1g 19y 6mo 4d 14h 25m	1
+EOF
+}
