@@ -4,7 +4,7 @@ load fixture
 
 @test "passed seconds diff with precise output" {
     typeset -A data=(
-	[0]='0s'
+	[0]='just now'
 	[1]='in 1s'
 	[2]='in 2s'
 	[60]='in 1m'

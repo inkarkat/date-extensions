@@ -432,7 +432,8 @@ diffOneDate()
 	    daysDiff=$((daysDiff < 0 ? -daysDiff : daysDiff))
 	elif [ "$isDirection" ]; then
 	    if [ $daysDiff -eq 0 ]; then
-		diffInUnits+=('today')
+		preciseDiff='today'
+		diffInUnits+=("$preciseDiff")
 	    elif [ $daysDiff -gt 0 ]; then
 		sigil=''
 		directionPrefix='in '
@@ -457,7 +458,8 @@ diffOneDate()
 	    secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
 	elif [ "$isDirection" ]; then
 	    if [ $secondsDiff -eq 0 ]; then
-		diffInUnits+=('just now')
+		preciseDiff='just now'
+		diffInUnits+=("$preciseDiff")
 	    elif [ $secondsDiff -gt 0 ]; then
 		sigil=''
 		directionPrefix='in '
@@ -467,7 +469,8 @@ diffOneDate()
 		directionSuffix=' ago'
 	    fi
 	elif [ $secondsDiff -eq 0 ]; then
-	    diffInUnits+=('at a single point in time')
+	    preciseDiff='at a single point in time'
+	    diffInUnits+=("$preciseDiff")
 	fi
     fi
     if [ -z "$daysDiff" ]; then

@@ -256,7 +256,7 @@ load fixture
 
 @test "diff with precise units" {
     typeset -A data=(
-	[2026-04-20 10:00:00]='0s'
+	[2026-04-20 10:00:00]='at a single point in time'
 	[2026-04-20 09:59:59]='-1s'
 	[2026-04-19 10:00:00]='-1d'
 	[2026-04-21 10:00:00]='1d'
