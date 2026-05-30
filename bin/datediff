@@ -13,7 +13,7 @@ hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
 : ${DATEDIFF_ADDITIONAL_EXIT_STATUS:='    4	Invalid DATE(s) / TIME(s) passed.
     5	A FILE could not be read.
     99	Empty input; no DATE / TIME could be read.'}
-readonly generalArgs='[-u|--utc|--universal]'
+readonly generalArgs='[-u|--utc|--universal] [-F|--field-separator FS]'
 readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|original|epoch|empty|whole-units|smallest-unit|best-unit|largest-unit|precise|all|textform'
 readonly precisionArgs='[--prefer-clock] [--long-units] [--precision|-p N|[U|Z][.N](w|d|h|m|s) | --precision-width|-P WIDTH] [-w|--width [+]WIDTH]'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
@@ -136,6 +136,11 @@ whereas "-le 1d" would yield true as long as the actual difference is within
 			the output; empty DATE / TIME is tolerated) from FILE.
 			These are then each compared to now / (as the second
 			date to) the passed DATE / TIME (being the first).
+    --field-separator|-F FS
+			Use FS for splitting the leading DATE / TIME off of
+			following content (instead of the default tab
+			character). Unlike AWK, does not support a regular
+			expression here.
 $DATEDIFF_ADDITIONAL_OPTIONS
 EXIT STATUS:
     0	Complete success.
@@ -207,6 +212,7 @@ prefix=
 suffix=
 typeset -a filespecs=()
 dateArgOffset=1
+fieldSeparator=$'\t'
 option() { :; }
 parameter() { :; }
 endOfOptionsAndParameters() { :; }
@@ -258,6 +264,8 @@ do
 
 	--file|-f)	shift; filespecs+=("${1:?}"); shift; dateArgOffset=0; parameter;;
 	--file=*)	filespecs+=("${1#--file=}"); shift; dateArgOffset=0; option;;
+	--field-separator|-F)
+			shift; fieldSeparator="${1:?}"; shift; parameter;;
 
 	--)		endOfOptionsAndParameters; [ "$hasDifference" ] || shift; break;;
 	-*)		noUnderstand; { echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -601,9 +609,9 @@ diffInput()
     local line dateOrTime addendum status
     while IFS=$'\n' read -r line || [ -n "$line" ]
     do
-	dateOrTime="${line%%$'\t'*}"
+	dateOrTime="${line%%"$fieldSeparator"*}"
 	addendum="${line#"$dateOrTime"}"
-	[ "$outputFormat" = empty ] && addendum="${addendum#$'\t'}" # Remove separator when not outputting the date [difference].
+	[ "$outputFormat" = empty ] && addendum="${addendum#"$fieldSeparator"}" # Remove separator when not outputting the date [difference].
 
 	if [ -z "$dateOrTime" ]; then
 	    isOutput && printf '%s\n' "$addendum"
