@@ -35,6 +35,8 @@ getShortUsage()
 	    printf %s "${timespanFormat}|${timeslotParameters}";;
 	comparisons)
 	    printf %s "${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs} ${comparisonInfluencingOptions}";;
+	filter)
+	    printf %s "$generalArgs ${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs} ${comparisonInfluencingOptions}";;
 	output)
 	    printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions";;
 	*)  echo "ERROR: Unknown short usage topic \"$1\"!" >&2; return 2;;
@@ -214,6 +216,7 @@ suffix=
 typeset -a filespecs=()
 dateArgOffset=1
 fieldSeparator=$'\t'
+isFilter=
 option() { :; }
 parameter() { :; }
 endOfOptionsAndParameters() { :; }
@@ -267,17 +270,19 @@ do
 	--seconds|-s)	shift; ensureSingleDifference; secondsDiff="${1:?}"; shift; hasDifference=t; parameter;;
 	--days|-d)	shift; ensureSingleDifference; daysDiff="${1:?}"; shift; hasDifference=t; parameter;;
 
-	--newer)	shift; parseAgeOrTimeslot -gt -eq "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons;;
-	--older)	shift; parseAgeOrTimeslot -lt -ne "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons;;
+	--newer)	shift; parseAgeOrTimeslot -gt -eq "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
+	--older)	shift; parseAgeOrTimeslot -lt -ne "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; timespan=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}") || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons;;
-	--within|-w)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='='; shift; parameter comparisons;;
-	--outside|-W)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='!='; shift; parameter comparisons;;
+			spanCompareOp="$1"; shift; timespan=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}") || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
+	--within|-w)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='='; shift; parameter comparisons filter;;
+	--outside|-W)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='!='; shift; parameter comparisons filter;;
 
 	--file|-f)	shift; filespecs+=("${1:?}"); shift; dateArgOffset=0; parameter;;
 	--file=*)	filespecs+=("${1#--file=}"); shift; dateArgOffset=0; option;;
 	--field-separator|-F)
-			shift; fieldSeparator="${1:?}"; shift; parameter;;
+			shift; fieldSeparator="${1:?}"; shift; parameter filter;;
+
+	--filter)	shift; dateArgOffset=0; isSuccessOutput=t; outputFormat=empty; isFilter=t; option;;
 
 	--)		endOfOptionsAndParameters; [ "$hasDifference" ] || shift; break;;
 	-*)		noUnderstand; { echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -296,6 +301,11 @@ elif [ "$isNegated" ] && [ "$isAbsolute" ]; then
     exit 2
 elif [ "$isAlwaysOutput" ] && [ "$isSuccessOutput" ]; then
     echo 'ERROR: Cannot combine -A|--always-output with -S|--success-output.'
+    echo
+    printUsage "$0"
+    exit 2
+elif [ "$isFilter" ] && [ -z "$spanCompareOp" ] && [ -z "$formatCompareOp" ]; then
+    printf 'ERROR: Comparison option required: %s\n' "$(getShortUsage comparisons)"
     echo
     printUsage "$0"
     exit 2
@@ -325,6 +335,7 @@ elif (($# < dateArgOffset || $# > dateArgOffset + 1)); then
     exit 2
 fi >&2
 
+[ "$isFilter" ] && [ ${#filespecs[@]} -eq 0 ] && filespecs=(-)
 [ -n "$NOW" ] \
     && getNow() { printf %s "$NOW"; } \
     || getNow() { printf '%(%s)T' -1; }
