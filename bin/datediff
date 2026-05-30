@@ -21,6 +21,7 @@ readonly timeslotParameters='s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear
 readonly newerOlderOptions='--newer|--older'
 readonly comparisonOptions='-lt|-le|-eq|-ne|-ge|-gt'
 readonly timeslotOptions='-w|--within|-W|--outside'
+readonly comparisonInfluencingOptions='[-a|--absolute]'
 readonly outputInfluencingOptions='[--short-units] [-A|--always-output|-S|--success-output] [-a|--absolute|[--output-positive|--output-inverted] [--no-direction]]'
 getShortUsage()
 {
@@ -33,7 +34,7 @@ getShortUsage()
 	newer-older-parameters)
 	    printf %s "${timespanFormat}|${timeslotParameters}";;
 	comparisons)
-	    printf %s "${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}";;
+	    printf %s "${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs} ${comparisonInfluencingOptions}";;
 	output)
 	    printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions";;
 	*)  echo "ERROR: Unknown short usage topic \"$1\"!" >&2; return 2;;
@@ -244,7 +245,7 @@ do
 
 	--universal|--utc|-u)
 			dateArgs+=("$1"); shift; option;;
-	--absolute|-a)	shift; isAbsolute=t; option;;
+	--absolute|-a)	shift; isAbsolute=t; option comparisons;;
 	--always-output|-A)
 			shift; isAlwaysOutput=t; option;;
 	--success-output|-S)
