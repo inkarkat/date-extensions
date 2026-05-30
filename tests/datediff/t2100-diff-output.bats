@@ -229,6 +229,13 @@ load fixture
     done
 }
 
+@test "diff with output as empty" {
+    run -0 datediff --output empty '2026-04-20 10:00' '2026-04-21 10:00:00'
+    assert_output ''
+    run -0 datediff --output empty --prefix '[' --suffix ']' '2026-04-20 10:00' '2026-04-21 10:00:00'
+    assert_output '[]'
+}
+
 @test "diff with output in whole units" {
     typeset -A data=(
 	[2026-04-20 10:00:00]='at a single point in time'

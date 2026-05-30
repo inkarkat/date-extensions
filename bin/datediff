@@ -14,7 +14,7 @@ hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
     5	A FILE could not be read.
     99	Empty input; no DATE / TIME could be read.'}
 readonly generalArgs='[-u|--utc|--universal]'
-readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|original|epoch|whole-units|smallest-unit|best-unit|largest-unit|precise|all|textform'
+readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|original|epoch|empty|whole-units|smallest-unit|best-unit|largest-unit|precise|all|textform'
 readonly precisionArgs='[--prefer-clock] [--long-units] [--precision|-p N|[U|Z][.N](w|d|h|m|s) | --precision-width|-P WIDTH] [-w|--width [+]WIDTH]'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
 readonly timeslotParameters='s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear]'
@@ -373,7 +373,7 @@ printCalculated()
 }
 printOriginal()
 {
-    printf '%s%s%s%s\n' "$prefix" "${1:?}" "$suffix" "$addendum"
+    printf '%s%s%s%s\n' "$prefix" "${1?}" "$suffix" "$addendum"
 }
 printSingleUnit()
 {
@@ -550,6 +550,7 @@ diffOneDate()
 
 	original)	printOriginal "${!#}";;
 	epoch)		printOriginal "@$d2";;
+	empty)		printOriginal '';;
 	whole-units)    # Choose all units that are not just a fraction; i.e. do not start with 0.
 			typeset -a wholeUnits=()
 			for unit in "${diffInUnits[@]}"
@@ -602,6 +603,8 @@ diffInput()
     do
 	dateOrTime="${line%%$'\t'*}"
 	addendum="${line#"$dateOrTime"}"
+	[ "$outputFormat" = empty ] && addendum="${addendum#$'\t'}" # Remove separator when not outputting the date [difference].
+
 	if [ -z "$dateOrTime" ]; then
 	    isOutput && printf '%s\n' "$addendum"
 	    continue
