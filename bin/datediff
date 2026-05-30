@@ -29,20 +29,44 @@ readonly outputInfluencingOptions='[--short-units] [-A|--always-output|-S|--succ
 getShortUsage()
 {
     local -r newerOlderArgs="$newerOlderOptions [-]TIMESPAN|TIMESLOT"
-    local -r timeslotArgs="$timeslotOptions $timeslotParameters"
-    local -r timespanFormat="$(durationToSeconds --get-short-usage format 2>/dev/null)"
-    local -r comparisonArgs="$comparisonOptions $timespanFormat"
+    local -r timeslotArgs="$timeslotOptions TIMESLOT"
+    local -r comparisonArgs="$comparisonOptions [-]TIMESPAN"
     case "$1" in
 	'') printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions [${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}]";;
 	newer-older-parameters)
+	    local -r timespanFormat="$(durationToSeconds --get-short-usage format 2>/dev/null)"
 	    printf %s "${timespanFormat}|${timeslotParameters}";;
 	comparisons)
 	    printf %s "${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs} ${comparisonInfluencingOptions}";;
 	filter)
-	    printf %s "$generalArgs ${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs} ${comparisonInfluencingOptions}";;
+	    local fieldSeparatorArg='[-F|--field-separator FS]'; [ -n "${fieldSeparator+t}" ] && fieldSeparatorArg=''
+	    printf %s "${fieldSeparatorArg}${fieldSeparatorArg:+ }${newerOlderArgs}|DATE|TIME | ${comparisonArgs}|DATE|TIME | ${timeslotArgs} ${comparisonInfluencingOptions}";;
 	output)
 	    printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions";;
 	*)  echo "ERROR: Unknown short usage topic \"$1\"!" >&2; return 2;;
+    esac
+}
+getLongUsage()
+{
+    local topic="$1"; shift
+    local what="$1"; shift
+    local -r timespanFormat="$(durationToSeconds --get-short-usage format 2>/dev/null)"
+    case "$topic" in
+	comparisons)
+	    cat <<HELPTEXT
+    ${newerOlderOptions} [-]TIMESPAN|TIMESLOT | $comparisonOptions $timespanFormat | $timeslotOptions $timeslotParameters ${comparisonInfluencingOptions}
+	    		Only print those ${what:-lines} that match the
+			TIMESPAN|TIMESLOT comparison.
+HELPTEXT
+	    ;;
+	filter)
+	    cat <<HELPTEXT
+    ${newerOlderOptions} [-]TIMESPAN|TIMESLOT|DATE|TIME | $comparisonOptions ${timespanFormat}|DATE|TIME | $timeslotOptions $timeslotParameters ${comparisonInfluencingOptions}
+	    		Only print those ${what:-lines} that match the
+			TIMESPAN|TIMESLOT|DATE|TIME comparison.
+HELPTEXT
+	    ;;
+	*)  echo "ERROR: Unknown long usage topic \"$1\"!" >&2; return 2;;
     esac
 }
 printShortUsage()
@@ -248,7 +272,7 @@ prefix=
 suffix=
 typeset -a filespecs=()
 dateArgOffset=1
-fieldSeparator=$'\t'
+unset fieldSeparator
 isFilter=
 statusHandler=handleNormalStatus
 option() { :; }
@@ -270,6 +294,8 @@ do
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--get-short-usage)
 			shift; getShortUsage "$@"; exit $?;;
+	--get-long-usage)
+			shift; getLongUsage "$@"; exit $?;;
 	--print-usage)	shift; printUsage "$0"; exit 2;;
 	--understand-for)
 			shift; understandsSubtopics["$1"]=t; shift;;
@@ -374,6 +400,7 @@ elif (($# < dateArgOffset || $# > dateArgOffset + 1)); then
     exit 2
 fi >&2
 
+: ${fieldSeparator:=$'\t'}
 [ "$isFilter" ] && [ ${#filespecs[@]} -eq 0 ] && filespecs=(-)
 [ -n "$NOW" ] \
     && getNow() { printf %s "$NOW"; } \

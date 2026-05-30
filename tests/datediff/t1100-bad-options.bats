@@ -95,7 +95,7 @@ load fixture
 
 @test "filter without comparison parameter prints error and exits with 2" {
     run -2 datediff --filter '10:00'
-    assert_line -n 0 'ERROR: Comparison option required: --newer|--older [-]TIMESPAN|TIMESLOT | -lt|-le|-eq|-ne|-ge|-gt "[-][G[w]g ][Y[w]y ][MO[w]mo ][W[w]w ]([D[w]d ]([HH:]MM:SS|[Hh ][Mm ][Ss]))|D-[HH:]MM:SS|S" | -w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] [-a|--absolute]'
+    assert_line -n 0 'ERROR: Comparison option required: --newer|--older [-]TIMESPAN|TIMESLOT | -lt|-le|-eq|-ne|-ge|-gt [-]TIMESPAN | -w|--within|-W|--outside TIMESLOT [-a|--absolute]'
     assert_line -n 1 -e '^Usage:'
 }
 
