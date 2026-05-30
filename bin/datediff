@@ -6,6 +6,8 @@ shopt -qs extglob
 
 : ${DATE:=date}
 
+export DURATIONTOSECONDS_ACCEPT_NEGATIVE=t
+
 hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
 : ${DATEDIFF_COMMAND:=$(basename "$0")}
 : ${DATEDIFF_WHAT:='the difference between two DATEs or TIMEs / the passed DATE or TIME and now'}
@@ -27,7 +29,7 @@ getShortUsage()
 {
     local -r newerOlderArgs="$newerOlderOptions [-]TIMESPAN|TIMESLOT"
     local -r timeslotArgs="$timeslotOptions $timeslotParameters"
-    local -r timespanFormat="$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds --get-short-usage format 2>/dev/null)"
+    local -r timespanFormat="$(durationToSeconds --get-short-usage format 2>/dev/null)"
     local -r comparisonArgs="$comparisonOptions $timespanFormat"
     case "$1" in
 	'') printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions [${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}]";;
@@ -61,7 +63,7 @@ HELPDESCRIPTION
 	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs -s|--seconds|-d|--days NUM $outputInfluencingOptions"
 	echo
     fi
-    local timespanFormat="$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds --get-short-usage format 2>/dev/null)"
+    local timespanFormat="$(durationToSeconds --get-short-usage format 2>/dev/null)"
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} is greater / smaller than TIMESPAN.
 Can be combined with -o|--output to print the actual difference [if the test
@@ -162,6 +164,11 @@ ensureSingleDifference()
     exit 2
 }
 
+timespan=
+parseTimespan()
+{
+    timespan=$(durationToSeconds -- "${1:?}")
+}
 timeformat='%s'
 parseTimeslot()
 {
@@ -190,7 +197,7 @@ parseAgeOrTimeslot()
 	timespan=0
 	formatCompareOp='='
 	combinedCompareOp="$potentialCombinedCompareOp"
-    elif timespan=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}"); then
+    elif timespan=$(durationToSeconds -- "${1:?}"); then
 	spanCompareOp="$potentialSpanCompareOp"
 	let timespan=-timespan
     else
@@ -273,7 +280,7 @@ do
 	--newer)	shift; parseAgeOrTimeslot -gt -eq "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
 	--older)	shift; parseAgeOrTimeslot -lt -ne "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; timespan=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}") || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
+			spanCompareOp="$1"; shift; parseTimespan "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
 	--within|-w)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='='; shift; parameter comparisons filter;;
 	--outside|-W)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='!='; shift; parameter comparisons filter;;
 
