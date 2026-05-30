@@ -11,7 +11,8 @@ export DURATIONTOSECONDS_ACCEPT_NEGATIVE=t
 hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
 : ${DATEDIFF_COMMAND:=$(basename "$0")}
 : ${DATEDIFF_WHAT:='the difference between two DATEs or TIMEs / the passed DATE or TIME and now'}
-: ${DATEDIFF_INPUT_ARGS:='-f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'}
+: ${DATEDIFF_SINGLE_INPUT_ARGS:='-f|--file FILE [-f ...]|DATE|TIME'}
+: ${DATEDIFF_INPUT_ARGS:="(${DATEDIFF_SINGLE_INPUT_ARGS}) [DATE|TIME]"}
 : ${DATEDIFF_ADDITIONAL_EXIT_STATUS:='    4	Invalid DATE(s) / TIME(s) passed.
     5	A FILE could not be read.
     99	Empty input; no DATE / TIME could be read.'}
@@ -73,7 +74,8 @@ difference of DATE|TIME to now / the second passed DATE|TIME to the first.
 $newerOlderOptions instead are (signed) age comparisons; future dates / dates where
 the second passed DATE|TIME is greater than the first are always newer (unless
 -TIMESPAN, which asserts that it must be at least TIMESPAN in the future) and
-never older.
+never older. However, for a comparison against DATE|TIME, --newer is exactly the
+same as -gt.
 This is different from a comparison with --absolute, which would treat
 (greater / smaller) differences the same regardless of being in the past or
 future.
@@ -82,6 +84,8 @@ HELPDESCRIPTION
     echo
     printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderOptions [-]TIMESPAN|TIMESLOT $DATEDIFF_INPUT_ARGS"
     printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonOptions [-]TIMESPAN $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderOptions [-]TIMESPAN|TIMESLOT|DATE|TIME $DATEDIFF_SINGLE_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonOptions [-]TIMESPAN|DATE|TIME $DATEDIFF_SINGLE_INPUT_ARGS"
     echo
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} falls inside / outside TIMESLOT.
@@ -164,10 +168,29 @@ ensureSingleDifference()
     exit 2
 }
 
+getDate()
+{
+    if [ "$timeformat" = '%s' ] && [[ "${1:?}" =~ ^@[0-9]+$ ]]; then
+	printf %d "${1#@}"  # Optimization if the passed date is already in seconds since the epoch.
+    else
+	"$DATE" "${dateArgs[@]}" --date="${1:?}" "+${timeformat:?}"
+    fi
+}
+
 timespan=
+spanCompareOp=
+compareEpoch=
+epochCompareOp=
 parseTimespan()
 {
-    timespan=$(durationToSeconds -- "${1:?}")
+    local potentialCompareOp="${1:?}"; shift
+    if timespan=$(durationToSeconds -- "${1:?}"); then
+	spanCompareOp="$potentialCompareOp"
+    elif compareEpoch=$(getDate "${1:?}" 2>/dev/null); then
+	epochCompareOp="$potentialCompareOp"
+    else
+	return 1
+    fi
 }
 timeformat='%s'
 parseTimeslot()
@@ -184,12 +207,11 @@ parseTimeslot()
     esac
 }
 isNegated=
-spanCompareOp=
 formatCompareOp=
 combinedCompareOp='-eq'
 parseAgeOrTimeslot()
 {
-    local potentialSpanCompareOp="${1:?}"; shift
+    local potentialCompareOp="${1:?}"; shift
     local potentialCombinedCompareOp="${1:?}"; shift
 
     if parseTimeslot "${1:?}"; then
@@ -198,8 +220,10 @@ parseAgeOrTimeslot()
 	formatCompareOp='='
 	combinedCompareOp="$potentialCombinedCompareOp"
     elif timespan=$(durationToSeconds -- "${1:?}"); then
-	spanCompareOp="$potentialSpanCompareOp"
+	spanCompareOp="$potentialCompareOp"
 	let timespan=-timespan
+    elif compareEpoch="$(getDate "${1:?}" 2>/dev/null)"; then
+	epochCompareOp="$potentialCompareOp"
     else
 	return 1
     fi
@@ -280,7 +304,7 @@ do
 	--newer)	shift; parseAgeOrTimeslot -gt -eq "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
 	--older)	shift; parseAgeOrTimeslot -lt -ne "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; parseTimespan "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
+			parseTimespan "$1" "${2:?}" || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$2"; printUsage "$0" >&2; exit 2; }; shift; shift; parameter comparisons filter;;
 	--within|-w)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='='; shift; parameter comparisons filter;;
 	--outside|-W)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='!='; shift; parameter comparisons filter;;
 
@@ -311,13 +335,18 @@ elif [ "$isAlwaysOutput" ] && [ "$isSuccessOutput" ]; then
     echo
     printUsage "$0"
     exit 2
-elif [ "$isFilter" ] && [ -z "$spanCompareOp" ] && [ -z "$formatCompareOp" ]; then
+elif [ "$isFilter" ] && [ -z "$spanCompareOp" ] && [ -z "$epochCompareOp" ] && [ -z "$formatCompareOp" ]; then
     printf 'ERROR: Comparison option required: %s\n' "$(getShortUsage comparisons)"
     echo
     printUsage "$0"
     exit 2
+elif [ -n "$epochCompareOp" ] && [ $# -gt 1 ]; then
+    echo 'ERROR: Only one DATE|TIME can be compared against another DATE|TIME. Date differences can only be compared against TIMESPAN or TIMESLOT.'
+    echo
+    printUsage "$0"
+    exit 2
 fi >&2
-if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
+if [ -n "$spanCompareOp" ] || [ -n "$epochCompareOp" ] || [ -n "$formatCompareOp" ]; then
     if [ "$hasDifference" ]; then
 	echo "ERROR: Cannot combine -s|--seconds|-d|--days with ${newerOlderOptions}|${comparisonOptions}|${timeslotOptions}."
 	echo
@@ -347,15 +376,6 @@ fi >&2
     && getNow() { printf %s "$NOW"; } \
     || getNow() { printf '%(%s)T' -1; }
 
-getDate()
-{
-    if [ "$timeformat" = '%s' ] && [[ "${1:?}" =~ ^@[0-9]+$ ]]; then
-	printf %d "${1#@}"  # Optimization if the passed date is already in seconds since the epoch.
-    else
-	"$DATE" "${dateArgs[@]}" --date="${1:?}" "+${timeformat:?}"
-    fi
-}
-
 parseDates()
 {
     if [ $# -eq 1 ]; then
@@ -369,7 +389,7 @@ parseDates()
 
 isOutput()
 {
-    { [ -z "$spanCompareOp" ] && [ -z "$formatCompareOp" ]; } || [ -n "$outputFormat" ]
+    { [ -z "$spanCompareOp" ] && [ -z "$epochCompareOp" ] && [ -z "$formatCompareOp" ]; } || [ -n "$outputFormat" ]
 }
 
 addDiffUnit()
@@ -452,7 +472,7 @@ diffOneDate()
     local preciseDiff=
     typeset -a diffInUnits=()
     local status=0
-    if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
+    if [ -n "$spanCompareOp" ] || [ -n "$epochCompareOp" ] || [ -n "$formatCompareOp" ]; then
 	local secondsDiff=
 	parseDates "$@" || return $?
 	{
@@ -465,6 +485,13 @@ diffOneDate()
 		    [ "$isAbsolute" ] \
 			&& secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
 		    [ $secondsDiff ${spanCompareOp:?} $timespan ]
+		}
+	} || {
+		[ -n "$epochCompareOp" ] && {
+		    secondsDiff=$((d2 - compareEpoch))
+		    [ "$isAbsolute" ] \
+			&& secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
+		    [ "$d2" $epochCompareOp "$compareEpoch" ]
 		}
 	}; status=$?
 	if [ $status $combinedCompareOp 0 ];

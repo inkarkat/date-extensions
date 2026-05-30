@@ -52,7 +52,7 @@ load fixture
 }
 
 @test "invalid -lt parameter prints error" {
-    for value in '12x' 'generational'
+    for value in '12xy' 'generational'
     do
 	run -2 datediff -lt "$value" 2026-04-20 \
 	    && assert_line -n 0 "ERROR: Illegal TIMESPAN: $value" \
@@ -62,7 +62,7 @@ load fixture
 }
 
 @test "invalid --newer parameter prints error" {
-    for value in '12x' 'generational'
+    for value in '12xy' 'generational'
     do
 	run -2 datediff --newer "$value" 2026-04-20 \
 	    && assert_line -n 0 "ERROR: Illegal TIMESPAN or TIMESLOT: $value" \
@@ -96,5 +96,11 @@ load fixture
 @test "filter without comparison parameter prints error and exits with 2" {
     run -2 datediff --filter '10:00'
     assert_line -n 0 'ERROR: Comparison option required: --newer|--older [-]TIMESPAN|TIMESLOT | -lt|-le|-eq|-ne|-ge|-gt "[-][G[w]g ][Y[w]y ][MO[w]mo ][W[w]w ]([D[w]d ]([HH:]MM:SS|[Hh ][Mm ][Ss]))|D-[HH:]MM:SS|S" | -w|--within|-W|--outside s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear] [-a|--absolute]'
+    assert_line -n 1 -e '^Usage:'
+}
+
+@test "test something" {
+    run -2 datediff -lt 2026-05-30 '10:00' 2026-04-20
+    assert_line -n 0 'ERROR: Only one DATE|TIME can be compared against another DATE|TIME. Date differences can only be compared against TIMESPAN or TIMESLOT.'
     assert_line -n 1 -e '^Usage:'
 }
