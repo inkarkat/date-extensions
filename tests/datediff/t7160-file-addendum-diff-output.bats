@@ -14,6 +14,7 @@ load fixture
 	[years]='-49'
 	[generations]='-2'
 	[original]="$inputDate"
+	[epoch]='@214614000'
 	[whole-units]='2583 weeks = 602.6 months = 49.5 years = 2 generations ago'
 	[smallest-unit]='2583 weeks ago'
 	[best-unit]='2 generations ago'

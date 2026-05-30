@@ -199,6 +199,36 @@ load fixture
     done
 }
 
+@test "diff with output as epoch" {
+    local -r todayEpoch=$(date --date='today 00:00' +%s)
+    typeset -A data=(
+	[10:00:00]="@$((todayEpoch + 36000))"
+	[10:00:01]="@$((todayEpoch + 36001))"
+	[10:00:02]="@$((todayEpoch + 36002))"
+	[10:01]="@$((todayEpoch + 36060))"
+	[11:00]="@$((todayEpoch + 39600))"
+	[23:59]="@$((todayEpoch + 86340))"
+	[00:00]="@$((todayEpoch))"
+	[09:00]="@$((todayEpoch + 32400))"
+	[2026-04-20 10:00:00]='@1776672000'
+	[2026-04-20 09:59:59]='@1776671999'
+	[2026-04-19 10:00:00]='@1776585600'
+	[2026-04-21 10:00:00]='@1776758400'
+	[2026-04-21 12:32:48]='@1776767568'
+	[2026-05-12 20:05:00]='@1778609100'
+	[2026-06-01]='@1780264800'
+	[2027-01-01]='@1798758000'
+	[1976-10-20]='@214614000'
+    )
+
+    for date in "${!data[@]}"
+    do
+	run -0 datediff --output epoch '2026-04-20 10:00' "$date" \
+	    && assert_output "${data["$date"]}" \
+	    || fail "$date"
+    done
+}
+
 @test "diff with output in whole units" {
     typeset -A data=(
 	[2026-04-20 10:00:00]='at a single point in time'
