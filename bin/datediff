@@ -153,7 +153,9 @@ whereas "-le 1d" would yield true as long as the actual difference is within
 $DATEDIFF_ADDITIONAL_OPTIONS
 EXIT STATUS:
     0	Complete success.
+    	With --filter: At least one date passed the comparison.
     1	The comparison failed; at least one DATE / TIME did not pass it.
+    	With --filter: No date passed the comparison.
     2	Bad invocation, wrong or missing command-line arguments.
 $DATEDIFF_ADDITIONAL_EXIT_STATUS
 HELPTEXT
@@ -248,6 +250,7 @@ typeset -a filespecs=()
 dateArgOffset=1
 fieldSeparator=$'\t'
 isFilter=
+statusHandler=handleNormalStatus
 option() { :; }
 parameter() { :; }
 endOfOptionsAndParameters() { :; }
@@ -313,7 +316,7 @@ do
 	--field-separator|-F)
 			shift; fieldSeparator="${1:?}"; shift; parameter filter;;
 
-	--filter)	shift; dateArgOffset=0; isSuccessOutput=t; outputFormat=empty; isFilter=t; option;;
+	--filter)	shift; dateArgOffset=0; isSuccessOutput=t; outputFormat=empty; isFilter=t; statusHandler=handleFilterStatus; option;;
 
 	--)		endOfOptionsAndParameters; [ "$hasDifference" ] || shift; break;;
 	-*)		noUnderstand; { echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -661,9 +664,32 @@ diffOneDate()
     return $status
 }
 
+overallStatus=
+handleNormalStatus()
+{
+    local exitStatus=${1:?}; shift
+    if [ $exitStatus -eq 0 ]; then
+	: ${overallStatus:=0}
+    elif [ $exitStatus -gt ${overallStatus:-0} ]; then
+	overallStatus=$exitStatus
+    fi
+}
+
+handleFilterStatus()
+{
+    local exitStatus=${1:?}; shift
+    if [ $exitStatus -eq 0 ]; then
+	[ ${overallStatus:-1} -eq 1 ] && overallStatus=0
+    elif [ $exitStatus -eq 1 ]; then
+	: ${overallStatus:=1}
+    elif [ $exitStatus -gt ${overallStatus:-1} ]; then
+	overallStatus=$exitStatus
+    fi
+}
+
 diffInput()
 {
-    local line dateOrTime addendum status
+    local line dateOrTime addendum
     while IFS=$'\n' read -r line || [ -n "$line" ]
     do
 	dateOrTime="${line%%"$fieldSeparator"*}"
@@ -675,9 +701,9 @@ diffInput()
 	    continue
 	fi
 
-	diffOneDate "$@" "$dateOrTime" && : ${status:=0} || { exitStatus=$?; if [ $exitStatus -gt ${status:-0} ]; then status=$exitStatus; fi; }
+	diffOneDate "$@" "$dateOrTime"; $statusHandler $?
     done
-    return ${status:-99}
+    return ${overallStatus:-99}
 }
 
 if [ ${#filespecs[@]} -gt 0 ]; then
