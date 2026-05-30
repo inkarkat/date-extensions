@@ -86,3 +86,9 @@ load fixture
 	    || fail "$cmpOp -1s"
     done
 }
+
+@test "both --always-output and --success-output prints error" {
+    run -2 datediff --always-output --success-output 2026-04-20
+    assert_line -n 0 'ERROR: Cannot combine -A|--always-output with -S|--success-output.'
+    assert_line -n 1 -e '^Usage:'
+}

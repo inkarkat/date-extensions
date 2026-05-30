@@ -21,7 +21,7 @@ readonly timeslotParameters='s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear
 readonly newerOlderOptions='--newer|--older'
 readonly comparisonOptions='-lt|-le|-eq|-ne|-ge|-gt'
 readonly timeslotOptions='-w|--within|-W|--outside'
-readonly outputInfluencingOptions='[--short-units] [-A|--always-output] [-a|--absolute|[--output-positive|--output-inverted] [--no-direction]]'
+readonly outputInfluencingOptions='[--short-units] [-A|--always-output|-S|--success-output] [-a|--absolute|[--output-positive|--output-inverted] [--no-direction]]'
 getShortUsage()
 {
     local -r newerOlderArgs="$newerOlderOptions [-]TIMESPAN|TIMESLOT"
@@ -62,7 +62,7 @@ HELPDESCRIPTION
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} is greater / smaller than TIMESPAN.
 Can be combined with -o|--output to print the actual difference [if the test
-fails, unless forced with -A|--always-output].
+fails, or succeeds with -S|--success-output, or forced with -A|--always-output].
 Note: $comparisonOptions are purely mathematical comparisons with the
 difference of DATE|TIME to now / the second passed DATE|TIME to the first.
 $newerOlderOptions instead are (signed) age comparisons; future dates / dates where
@@ -116,6 +116,10 @@ whereas "-le 1d" would yield true as long as the actual difference is within
     --always-output|-A	Normally, when a comparison is made and succeeds, the
 			difference is not printed; with this flag, it is always
 			printed.
+    --success-output|-S	Normally, when a comparison is made and succeeds, the
+			difference is not printed; this flag inverts that, so
+			dates that pass the comparison have the difference
+			printed, and those that don't are suppressed.
     --short-units	Use "2m" instead of "2 minutes".
     --output-positive	Omit a negative sign on negative differences (in the
 			output, but unlike --absolute not in the comparison).
@@ -197,6 +201,7 @@ secondsDiff=
 daysDiff=
 outputFormat="$DATEDIFF_OUTPUT_FORMAT"
 isAlwaysOutput=
+isSuccessOutput=
 typeset -a secondsToDurationArgs=()
 prefix=
 suffix=
@@ -225,6 +230,8 @@ do
 	--absolute|-a)	shift; isAbsolute=t; option;;
 	--always-output|-A)
 			shift; isAlwaysOutput=t; option;;
+	--success-output|-S)
+			shift; isSuccessOutput=t; option;;
 	--short-units)	shift; isShortUnits=t; option;;
 	--output-positive)
 			shift; outputSign=positive; option;;
@@ -264,6 +271,11 @@ if [ "$hasDifference" ] && [ ${#filespecs[@]} -gt 0 ]; then
     exit 2
 elif [ "$isNegated" ] && [ "$isAbsolute" ]; then
     echo "ERROR: Cannot combine -a|--absolute with $newerOlderOptions; use $comparisonOptions / $timeslotOptions instead."
+    echo
+    printUsage "$0"
+    exit 2
+elif [ "$isAlwaysOutput" ] && [ "$isSuccessOutput" ]; then
+    echo 'ERROR: Cannot combine -A|--always-output with -S|--success-output.'
     echo
     printUsage "$0"
     exit 2
@@ -419,10 +431,10 @@ diffOneDate()
 	}; status=$?
 	if [ $status $combinedCompareOp 0 ];
 	then
-	    [ "$isAlwaysOutput" ] && isOutput || return 0
+	    [ "$isAlwaysOutput" -o "$isSuccessOutput" ] && isOutput || return 0
 	    status=0
 	else
-	    isOutput || return 1
+	    [ ! "$isSuccessOutput" ] && isOutput || return 1
 	    status=1
 	fi
 	if [ -z "$secondsDiff" ]; then
