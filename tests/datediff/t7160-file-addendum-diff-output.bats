@@ -2,6 +2,8 @@
 
 load fixture
 
+readonly INPUT_DATE='1976-10-20'
+
 @test "diff and addendum with output formats" {
     typeset -A data=(
 	[seconds]='-1562058000'
@@ -12,6 +14,8 @@ load fixture
 	[months]='-602'
 	[years]='-49'
 	[generations]='-2'
+	[original]="$INPUT_DATE"
+	[epoch]='@214614000'
 	[whole-units]='2583 weeks = 602.6 months = 49.5 years = 2 generations ago'
 	[smallest-unit]='2583 weeks ago'
 	[best-unit]='2 generations ago'
@@ -21,12 +25,20 @@ load fixture
 
     for outputFormat in "${!data[@]}"
     do
-	run -0 datediff --output "$outputFormat" --file - <<<$'1976-10-20\twith\ttext' \
+	run -0 datediff --output "$outputFormat" --file - <<<"$INPUT_DATE"$'\twith\ttext' \
 	    && assert_output "${data["$outputFormat"]}"$'\twith\ttext' \
 	    || fail "$ --output outputFormat"
 
-	run -0 datediff --prefix '(' --suffix ')' --output "$outputFormat" --file - <<<$'1976-10-20\twith\ttext' \
+	run -0 datediff --prefix '(' --suffix ')' --output "$outputFormat" --file - <<<"$INPUT_DATE"$'\twith\ttext' \
 	    && assert_output "(${data["$outputFormat"]})"$'\twith\ttext' \
 	    || fail "--prefix '(' --suffix ')' --output $outputFormat"
     done
+}
+
+@test "only print addendum with output format empty" {
+    run -0 datediff --output empty --file - <<<"$INPUT_DATE"$'\twith\ttext'
+    assert_output $'with\ttext'
+
+    run -0 datediff --prefix '(' --suffix ')' --output empty --file - <<<"$INPUT_DATE"$'\twith\ttext'
+    assert_output $'()with\ttext'
 }

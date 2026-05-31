@@ -6,37 +6,67 @@ shopt -qs extglob
 
 : ${DATE:=date}
 
+export DURATIONTOSECONDS_ACCEPT_NEGATIVE=t
+
 hasCustomWhat=; [ -n "$DATEDIFF_WHAT" ] && hasCustomWhat=t
 : ${DATEDIFF_COMMAND:=$(basename "$0")}
 : ${DATEDIFF_WHAT:='the difference between two DATEs or TIMEs / the passed DATE or TIME and now'}
-: ${DATEDIFF_INPUT_ARGS:='-f|--file FILE [-f ...]|DATE|TIME [DATE|TIME]'}
+: ${DATEDIFF_SINGLE_INPUT_ARGS:='-f|--file FILE [-f ...]|DATE|TIME'}
+: ${DATEDIFF_INPUT_ARGS:="(${DATEDIFF_SINGLE_INPUT_ARGS}) [DATE|TIME]"}
 : ${DATEDIFF_ADDITIONAL_EXIT_STATUS:='    4	Invalid DATE(s) / TIME(s) passed.
     5	A FILE could not be read.
     99	Empty input; no DATE / TIME could be read.'}
-readonly generalArgs='[-u|--utc|--universal]'
-readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|whole-units|smallest-unit|best-unit|largest-unit|precise|all|textform'
+readonly generalArgs='[-u|--utc|--universal] [-F|--field-separator FS]'
+readonly availableOutputFormats='s[econd[s]]|m[inute[s]]|h[our[s]]|d[ay[s]]|w[eek[s]]|mo[nth[s]]|y[ear[s]]|g[eneration[s]]|original|epoch|empty|whole-units|smallest-unit|best-unit|largest-unit|precise|all|textform'
 readonly precisionArgs='[--prefer-clock] [--long-units] [--precision|-p N|[U|Z][.N](w|d|h|m|s) | --precision-width|-P WIDTH] [-w|--width [+]WIDTH]'
 readonly prefixSuffixArgs='[--prefix PREFIX [--prefix ...]] [--suffix SUFFIX [--suffix ...]]'
 readonly timeslotParameters='s[econd]|m[inute]|h[our]|d[ay]|w[eek]|mo[nth]|y[ear]'
 readonly newerOlderOptions='--newer|--older'
 readonly comparisonOptions='-lt|-le|-eq|-ne|-ge|-gt'
 readonly timeslotOptions='-w|--within|-W|--outside'
-readonly outputInfluencingOptions='[--short-units] [-A|--always-output] [-a|--absolute|[--output-positive|--output-inverted] [--no-direction]]'
+readonly comparisonInfluencingOptions='[-a|--absolute]'
+readonly outputInfluencingOptions='[--short-units] [-A|--always-output|-S|--success-output] [-a|--absolute|[--output-positive|--output-inverted] [--no-direction]]'
 getShortUsage()
 {
     local -r newerOlderArgs="$newerOlderOptions [-]TIMESPAN|TIMESLOT"
-    local -r timeslotArgs="$timeslotOptions $timeslotParameters"
-    local -r timespanFormat="$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds --get-short-usage format 2>/dev/null)"
-    local -r comparisonArgs="$comparisonOptions $timespanFormat"
+    local -r timeslotArgs="$timeslotOptions TIMESLOT"
+    local -r comparisonArgs="$comparisonOptions [-]TIMESPAN"
     case "$1" in
 	'') printf %s "$generalArgs [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions [${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}]";;
 	newer-older-parameters)
+	    local -r timespanFormat="$(durationToSeconds --get-short-usage format 2>/dev/null)"
 	    printf %s "${timespanFormat}|${timeslotParameters}";;
 	comparisons)
-	    printf %s "${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs}";;
+	    printf %s "${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs} ${comparisonInfluencingOptions}";;
+	filter)
+	    local fieldSeparatorArg='[-F|--field-separator FS]'; [ -n "${fieldSeparator+t}" ] && fieldSeparatorArg=''
+	    printf %s "${fieldSeparatorArg}${fieldSeparatorArg:+ }${newerOlderArgs}|DATE|\"today TIME\" | ${comparisonArgs}|DATE|\"today TIME\" | ${timeslotArgs} ${comparisonInfluencingOptions}";;
 	output)
 	    printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions";;
 	*)  echo "ERROR: Unknown short usage topic \"$1\"!" >&2; return 2;;
+    esac
+}
+getLongUsage()
+{
+    local topic="$1"; shift
+    local what="$1"; shift
+    local -r timespanFormat="$(durationToSeconds --get-short-usage format 2>/dev/null)"
+    case "$topic" in
+	comparisons)
+	    cat <<HELPTEXT
+    ${newerOlderOptions} [-]TIMESPAN|TIMESLOT | $comparisonOptions $timespanFormat | $timeslotOptions $timeslotParameters ${comparisonInfluencingOptions}
+	    		Only print those ${what:-lines} that match the
+			TIMESPAN|TIMESLOT comparison.
+HELPTEXT
+	    ;;
+	filter)
+	    cat <<HELPTEXT
+    ${newerOlderOptions} [-]TIMESPAN|TIMESLOT|DATE|"today TIME" | $comparisonOptions ${timespanFormat}|DATE|"today TIME"  | $timeslotOptions $timeslotParameters ${comparisonInfluencingOptions}
+	    		Only print those ${what:-lines} that match the
+			TIMESPAN|TIMESLOT|DATE|"today TIME"  comparison.
+HELPTEXT
+	    ;;
+	*)  echo "ERROR: Unknown long usage topic \"$1\"!" >&2; return 2;;
     esac
 }
 printShortUsage()
@@ -58,17 +88,18 @@ HELPDESCRIPTION
 	printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... [-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs -s|--seconds|-d|--days NUM $outputInfluencingOptions"
 	echo
     fi
-    local timespanFormat="$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds --get-short-usage format 2>/dev/null)"
+    local timespanFormat="$(durationToSeconds --get-short-usage format 2>/dev/null)"
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} is greater / smaller than TIMESPAN.
 Can be combined with -o|--output to print the actual difference [if the test
-fails, unless forced with -A|--always-output].
+fails, or succeeds with -S|--success-output, or forced with -A|--always-output].
 Note: $comparisonOptions are purely mathematical comparisons with the
 difference of DATE|TIME to now / the second passed DATE|TIME to the first.
 $newerOlderOptions instead are (signed) age comparisons; future dates / dates where
 the second passed DATE|TIME is greater than the first are always newer (unless
 -TIMESPAN, which asserts that it must be at least TIMESPAN in the future) and
-never older.
+never older. However, for a comparison against DATE|"today TIME" , --newer is
+exactly the same as -gt.
 This is different from a comparison with --absolute, which would treat
 (greater / smaller) differences the same regardless of being in the past or
 future.
@@ -77,6 +108,8 @@ HELPDESCRIPTION
     echo
     printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderOptions [-]TIMESPAN|TIMESLOT $DATEDIFF_INPUT_ARGS"
     printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonOptions [-]TIMESPAN $DATEDIFF_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderOptions [-]TIMESPAN|TIMESLOT|DATE|\"today TIME\" $DATEDIFF_SINGLE_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonOptions [-]TIMESPAN|DATE|\"today TIME\" $DATEDIFF_SINGLE_INPUT_ARGS"
     echo
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} falls inside / outside TIMESLOT.
@@ -116,6 +149,10 @@ whereas "-le 1d" would yield true as long as the actual difference is within
     --always-output|-A	Normally, when a comparison is made and succeeds, the
 			difference is not printed; with this flag, it is always
 			printed.
+    --success-output|-S	Normally, when a comparison is made and succeeds, the
+			difference is not printed; this flag inverts that, so
+			dates that pass the comparison have the difference
+			printed, and those that don't are suppressed.
     --short-units	Use "2m" instead of "2 minutes".
     --output-positive	Omit a negative sign on negative differences (in the
 			output, but unlike --absolute not in the comparison).
@@ -132,10 +169,17 @@ whereas "-le 1d" would yield true as long as the actual difference is within
 			the output; empty DATE / TIME is tolerated) from FILE.
 			These are then each compared to now / (as the second
 			date to) the passed DATE / TIME (being the first).
+    --field-separator|-F FS
+			Use FS for splitting the leading DATE / TIME off of
+			following content (instead of the default tab
+			character). Unlike AWK, does not support a regular
+			expression here.
 $DATEDIFF_ADDITIONAL_OPTIONS
 EXIT STATUS:
     0	Complete success.
+    	With --filter: At least one date passed the comparison.
     1	The comparison failed; at least one DATE / TIME did not pass it.
+    	With --filter: No date passed the comparison.
     2	Bad invocation, wrong or missing command-line arguments.
 $DATEDIFF_ADDITIONAL_EXIT_STATUS
 HELPTEXT
@@ -150,6 +194,30 @@ ensureSingleDifference()
     exit 2
 }
 
+getDate()
+{
+    if [ "$timeformat" = '%s' ] && [[ "${1:?}" =~ ^@[0-9]+$ ]]; then
+	printf %d "${1#@}"  # Optimization if the passed date is already in seconds since the epoch.
+    else
+	"$DATE" "${dateArgs[@]}" --date="${1:?}" "+${timeformat:?}"
+    fi
+}
+
+timespan=
+spanCompareOp=
+compareEpoch=
+epochCompareOp=
+parseTimespan()
+{
+    local potentialCompareOp="${1:?}"; shift
+    if timespan=$(durationToSeconds -- "${1:?}"); then
+	spanCompareOp="$potentialCompareOp"
+    elif compareEpoch=$(getDate "${1:?}" 2>/dev/null); then
+	epochCompareOp="$potentialCompareOp"
+    else
+	return 1
+    fi
+}
 timeformat='%s'
 parseTimeslot()
 {
@@ -165,12 +233,11 @@ parseTimeslot()
     esac
 }
 isNegated=
-spanCompareOp=
 formatCompareOp=
 combinedCompareOp='-eq'
 parseAgeOrTimeslot()
 {
-    local potentialSpanCompareOp="${1:?}"; shift
+    local potentialCompareOp="${1:?}"; shift
     local potentialCombinedCompareOp="${1:?}"; shift
 
     if parseTimeslot "${1:?}"; then
@@ -178,9 +245,11 @@ parseAgeOrTimeslot()
 	timespan=0
 	formatCompareOp='='
 	combinedCompareOp="$potentialCombinedCompareOp"
-    elif timespan=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}"); then
-	spanCompareOp="$potentialSpanCompareOp"
+    elif timespan=$(durationToSeconds -- "${1:?}"); then
+	spanCompareOp="$potentialCompareOp"
 	let timespan=-timespan
+    elif compareEpoch="$(getDate "${1:?}" 2>/dev/null)"; then
+	epochCompareOp="$potentialCompareOp"
     else
 	return 1
     fi
@@ -197,34 +266,53 @@ secondsDiff=
 daysDiff=
 outputFormat="$DATEDIFF_OUTPUT_FORMAT"
 isAlwaysOutput=
+isSuccessOutput=
 typeset -a secondsToDurationArgs=()
 prefix=
 suffix=
 typeset -a filespecs=()
 dateArgOffset=1
+unset fieldSeparator
+isFilter=
+statusHandler=handleNormalStatus
 option() { :; }
 parameter() { :; }
 endOfOptionsAndParameters() { :; }
 noUnderstand() { :; }
+typeset -A understandsSubtopics=()
+isUnderstandSubtopic() {
+    [ $# -gt 0 -a ${#understandsSubtopics[@]} -gt 0 ] || return 0
+    local subtopic; for subtopic
+    do
+	[ "${understandsSubtopics["$subtopic"]}" ] && return 0
+    done
+    return 1
+}
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--get-short-usage)
 			shift; getShortUsage "$@"; exit $?;;
+	--get-long-usage)
+			shift; getLongUsage "$@"; exit $?;;
 	--print-usage)	shift; printUsage "$0"; exit 2;;
+	--understand-for)
+			shift; understandsSubtopics["$1"]=t; shift;;
 	--understands)	shift
-			option() { printf 1; exit 0; }
-			parameter() { printf 2; exit 0; }
+			option() { isUnderstandSubtopic "$@" || exit 1; printf 1; exit 0; }
+			parameter() { isUnderstandSubtopic "$@" || exit 1; printf 2; exit 0; }
 			endOfOptionsAndParameters() { exit 99; }
 			noUnderstand() { exit 1; }
 			;;
 
 	--universal|--utc|-u)
 			dateArgs+=("$1"); shift; option;;
-	--absolute|-a)	shift; isAbsolute=t; option;;
+	--absolute|-a)	shift; isAbsolute=t; option comparisons;;
 	--always-output|-A)
 			shift; isAlwaysOutput=t; option;;
+	--success-output|-S)
+			shift; isSuccessOutput=t; option;;
 	--short-units)	shift; isShortUnits=t; option;;
 	--output-positive)
 			shift; outputSign=positive; option;;
@@ -242,15 +330,19 @@ do
 	--seconds|-s)	shift; ensureSingleDifference; secondsDiff="${1:?}"; shift; hasDifference=t; parameter;;
 	--days|-d)	shift; ensureSingleDifference; daysDiff="${1:?}"; shift; hasDifference=t; parameter;;
 
-	--newer)	shift; parseAgeOrTimeslot -gt -eq "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
-	--older)	shift; parseAgeOrTimeslot -lt -ne "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter;;
+	--newer)	shift; parseAgeOrTimeslot -gt -eq "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
+	--older)	shift; parseAgeOrTimeslot -lt -ne "${1:?}" || { printf >&2 'ERROR: Illegal TIMESPAN or TIMESLOT: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift; parameter comparisons filter;;
 	-lt|-le|-eq|-ne|-ge|-gt)
-			spanCompareOp="$1"; shift; timespan=$(DURATIONTOSECONDS_ACCEPT_NEGATIVE=t durationToSeconds -- "${1:?}") || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$1"; printUsage "$0" >&2; exit 2; }; shift;;
-	--within|-w)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='='; shift; parameter;;
-	--outside|-W)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='!='; shift; parameter;;
+			parseTimespan "$1" "${2:?}" || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n\n' "$2"; printUsage "$0" >&2; exit 2; }; shift; shift; parameter comparisons filter;;
+	--within|-w)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='='; shift; parameter comparisons filter;;
+	--outside|-W)	shift; parseTimeslot "${1:?}" || { printf >&2 'ERROR: Invalid TIMESLOT: "%s".\n\n' "$1"; printUsage "$0" >&2; exit 2; }; formatCompareOp='!='; shift; parameter comparisons filter;;
 
 	--file|-f)	shift; filespecs+=("${1:?}"); shift; dateArgOffset=0; parameter;;
 	--file=*)	filespecs+=("${1#--file=}"); shift; dateArgOffset=0; option;;
+	--field-separator|-F)
+			shift; fieldSeparator="${1:?}"; shift; parameter filter;;
+
+	--filter)	shift; dateArgOffset=0; isSuccessOutput=t; outputFormat=empty; isFilter=t; statusHandler=handleFilterStatus; option;;
 
 	--)		endOfOptionsAndParameters; [ "$hasDifference" ] || shift; break;;
 	-*)		noUnderstand; { echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -267,8 +359,23 @@ elif [ "$isNegated" ] && [ "$isAbsolute" ]; then
     echo
     printUsage "$0"
     exit 2
+elif [ "$isAlwaysOutput" ] && [ "$isSuccessOutput" ]; then
+    echo 'ERROR: Cannot combine -A|--always-output with -S|--success-output.'
+    echo
+    printUsage "$0"
+    exit 2
+elif [ "$isFilter" ] && [ -z "$spanCompareOp" ] && [ -z "$epochCompareOp" ] && [ -z "$formatCompareOp" ]; then
+    printf 'ERROR: Comparison option required: %s\n' "$(getShortUsage comparisons)"
+    echo
+    printUsage "$0"
+    exit 2
+elif [ -n "$epochCompareOp" ] && [ $# -gt 1 ]; then
+    echo 'ERROR: Only one DATE|TIME can be compared against another DATE|TIME. Date differences can only be compared against TIMESPAN or TIMESLOT.'
+    echo
+    printUsage "$0"
+    exit 2
 fi >&2
-if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
+if [ -n "$spanCompareOp" ] || [ -n "$epochCompareOp" ] || [ -n "$formatCompareOp" ]; then
     if [ "$hasDifference" ]; then
 	echo "ERROR: Cannot combine -s|--seconds|-d|--days with ${newerOlderOptions}|${comparisonOptions}|${timeslotOptions}."
 	echo
@@ -293,18 +400,11 @@ elif (($# < dateArgOffset || $# > dateArgOffset + 1)); then
     exit 2
 fi >&2
 
+: ${fieldSeparator:=$'\t'}
+[ "$isFilter" ] && [ ${#filespecs[@]} -eq 0 ] && filespecs=(-)
 [ -n "$NOW" ] \
     && getNow() { printf %s "$NOW"; } \
     || getNow() { printf '%(%s)T' -1; }
-
-getDate()
-{
-    if [ "$timeformat" = '%s' ] && [[ "${1:?}" =~ ^@[0-9]+$ ]]; then
-	printf %d "${1#@}"  # Optimization if the passed date is already in seconds since the epoch.
-    else
-	"$DATE" "${dateArgs[@]}" --date="${1:?}" "+${timeformat:?}"
-    fi
-}
 
 parseDates()
 {
@@ -319,7 +419,7 @@ parseDates()
 
 isOutput()
 {
-    { [ -z "$spanCompareOp" ] && [ -z "$formatCompareOp" ]; } || [ -n "$outputFormat" ]
+    { [ -z "$spanCompareOp" ] && [ -z "$epochCompareOp" ] && [ -z "$formatCompareOp" ]; } || [ -n "$outputFormat" ]
 }
 
 addDiffUnit()
@@ -358,6 +458,10 @@ printCalculated()
     local unitDiff=$(divround $((100 * diff / divisor)))
     local flooredDiff="${unitDiff%.*}"
     printf '%s%d%s%s\n' "$prefix" $flooredDiff "$suffix" "$addendum"
+}
+printOriginal()
+{
+    printf '%s%s%s%s\n' "$prefix" "${1?}" "$suffix" "$addendum"
 }
 printSingleUnit()
 {
@@ -398,7 +502,7 @@ diffOneDate()
     local preciseDiff=
     typeset -a diffInUnits=()
     local status=0
-    if [ -n "$spanCompareOp" ] || [ -n "$formatCompareOp" ]; then
+    if [ -n "$spanCompareOp" ] || [ -n "$epochCompareOp" ] || [ -n "$formatCompareOp" ]; then
 	local secondsDiff=
 	parseDates "$@" || return $?
 	{
@@ -412,13 +516,20 @@ diffOneDate()
 			&& secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
 		    [ $secondsDiff ${spanCompareOp:?} $timespan ]
 		}
+	} || {
+		[ -n "$epochCompareOp" ] && {
+		    secondsDiff=$((d2 - compareEpoch))
+		    [ "$isAbsolute" ] \
+			&& secondsDiff=$((secondsDiff < 0 ? -secondsDiff : secondsDiff))
+		    [ "$d2" $epochCompareOp "$compareEpoch" ]
+		}
 	}; status=$?
 	if [ $status $combinedCompareOp 0 ];
 	then
-	    [ "$isAlwaysOutput" ] && isOutput || return 0
+	    [ "$isAlwaysOutput" -o "$isSuccessOutput" ] && isOutput || return 0
 	    status=0
 	else
-	    isOutput || return 1
+	    [ ! "$isSuccessOutput" ] && isOutput || return 1
 	    status=1
 	fi
 	if [ -z "$secondsDiff" ]; then
@@ -532,6 +643,9 @@ diffOneDate()
 	g?(eneration?(s)))
 			printCalculated ${sigil}${daysDiff} 9131;;
 
+	original)	printOriginal "${!#}";;
+	epoch)		printOriginal "@$d2";;
+	empty)		printOriginal '';;
 	whole-units)    # Choose all units that are not just a fraction; i.e. do not start with 0.
 			typeset -a wholeUnits=()
 			for unit in "${diffInUnits[@]}"
@@ -577,21 +691,46 @@ diffOneDate()
     return $status
 }
 
+overallStatus=
+handleNormalStatus()
+{
+    local exitStatus=${1:?}; shift
+    if [ $exitStatus -eq 0 ]; then
+	: ${overallStatus:=0}
+    elif [ $exitStatus -gt ${overallStatus:-0} ]; then
+	overallStatus=$exitStatus
+    fi
+}
+
+handleFilterStatus()
+{
+    local exitStatus=${1:?}; shift
+    if [ $exitStatus -eq 0 ]; then
+	[ ${overallStatus:-1} -eq 1 ] && overallStatus=0
+    elif [ $exitStatus -eq 1 ]; then
+	: ${overallStatus:=1}
+    elif [ $exitStatus -gt ${overallStatus:-1} ]; then
+	overallStatus=$exitStatus
+    fi
+}
+
 diffInput()
 {
-    local line dateOrTime addendum status
+    local line dateOrTime addendum
     while IFS=$'\n' read -r line || [ -n "$line" ]
     do
-	dateOrTime="${line%%$'\t'*}"
+	dateOrTime="${line%%"$fieldSeparator"*}"
 	addendum="${line#"$dateOrTime"}"
+	[ "$outputFormat" = empty ] && addendum="${addendum#"$fieldSeparator"}" # Remove separator when not outputting the date [difference].
+
 	if [ -z "$dateOrTime" ]; then
 	    isOutput && printf '%s\n' "$addendum"
 	    continue
 	fi
 
-	diffOneDate "$@" "$dateOrTime" && : ${status:=0} || { exitStatus=$?; if [ $exitStatus -gt ${status:-0} ]; then status=$exitStatus; fi; }
+	diffOneDate "$@" "$dateOrTime"; $statusHandler $?
     done
-    return ${status:-99}
+    return ${overallStatus:-99}
 }
 
 if [ ${#filespecs[@]} -gt 0 ]; then

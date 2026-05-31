@@ -52,7 +52,7 @@ load fixture
 }
 
 @test "invalid -lt parameter prints error" {
-    for value in '12x' 'generational'
+    for value in '12xy' 'generational'
     do
 	run -2 datediff -lt "$value" 2026-04-20 \
 	    && assert_line -n 0 "ERROR: Illegal TIMESPAN: $value" \
@@ -62,7 +62,7 @@ load fixture
 }
 
 @test "invalid --newer parameter prints error" {
-    for value in '12x' 'generational'
+    for value in '12xy' 'generational'
     do
 	run -2 datediff --newer "$value" 2026-04-20 \
 	    && assert_line -n 0 "ERROR: Illegal TIMESPAN or TIMESLOT: $value" \
@@ -85,4 +85,22 @@ load fixture
 	    && assert_line -n 1 -e '^Usage:' \
 	    || fail "$cmpOp -1s"
     done
+}
+
+@test "both --always-output and --success-output prints error" {
+    run -2 datediff --always-output --success-output 2026-04-20
+    assert_line -n 0 'ERROR: Cannot combine -A|--always-output with -S|--success-output.'
+    assert_line -n 1 -e '^Usage:'
+}
+
+@test "filter without comparison parameter prints error and exits with 2" {
+    run -2 datediff --filter '10:00'
+    assert_line -n 0 'ERROR: Comparison option required: --newer|--older [-]TIMESPAN|TIMESLOT | -lt|-le|-eq|-ne|-ge|-gt [-]TIMESPAN | -w|--within|-W|--outside TIMESLOT [-a|--absolute]'
+    assert_line -n 1 -e '^Usage:'
+}
+
+@test "test something" {
+    run -2 datediff -lt 2026-05-30 '10:00' 2026-04-20
+    assert_line -n 0 'ERROR: Only one DATE|TIME can be compared against another DATE|TIME. Date differences can only be compared against TIMESPAN or TIMESLOT.'
+    assert_line -n 1 -e '^Usage:'
 }
