@@ -42,3 +42,25 @@ $NOW_DATE	-ge	@$NOW	0
 2027-01-01	-lt	2026-11-01	1
 EOF
 }
+
+@test "compare time against time" {
+    while IFS=$'\t' read -r datetime cmpOp cmpDate expectedStatus
+    do
+	run datediff $cmpOp "$cmpDate" "$datetime" \
+	    && assert_equal $status $expectedStatus \
+	    && assert_output '' \
+	    || fail "$cmpOp ${cmpDate@Q} ${datetime@Q}"
+    done <<-EOF
+today 09:59:59	-eq	today 09:59:58	1
+today 09:59:59	-eq	today 10:00:01	1
+today 10:00:01	-eq	today 09:59:59	1
+today 10:00:01	-eq	today 10:00:01	0
+today 11:30:00	-eq	today 11:30	0
+today 11:30:00	--newer	today 11:00:00	0
+today 11:30:00	--newer	today 12:00:00	1
+today 11:30:00	--newer	today 10:30:00	0
+today 11:30:00	--older	today 11:00:00	1
+today 11:30:00	--older	today 12:00:00	0
+today 11:30:00	--older	today 10:30:00	1
+EOF
+}

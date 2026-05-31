@@ -40,7 +40,7 @@ getShortUsage()
 	    printf %s "${newerOlderArgs} | ${comparisonArgs} | ${timeslotArgs} ${comparisonInfluencingOptions}";;
 	filter)
 	    local fieldSeparatorArg='[-F|--field-separator FS]'; [ -n "${fieldSeparator+t}" ] && fieldSeparatorArg=''
-	    printf %s "${fieldSeparatorArg}${fieldSeparatorArg:+ }${newerOlderArgs}|DATE|TIME | ${comparisonArgs}|DATE|TIME | ${timeslotArgs} ${comparisonInfluencingOptions}";;
+	    printf %s "${fieldSeparatorArg}${fieldSeparatorArg:+ }${newerOlderArgs}|DATE|\"today TIME\" | ${comparisonArgs}|DATE|\"today TIME\" | ${timeslotArgs} ${comparisonInfluencingOptions}";;
 	output)
 	    printf %s "-o|--output ${availableOutputFormats} ${precisionArgs}] $prefixSuffixArgs $outputInfluencingOptions";;
 	*)  echo "ERROR: Unknown short usage topic \"$1\"!" >&2; return 2;;
@@ -61,9 +61,9 @@ HELPTEXT
 	    ;;
 	filter)
 	    cat <<HELPTEXT
-    ${newerOlderOptions} [-]TIMESPAN|TIMESLOT|DATE|TIME | $comparisonOptions ${timespanFormat}|DATE|TIME | $timeslotOptions $timeslotParameters ${comparisonInfluencingOptions}
+    ${newerOlderOptions} [-]TIMESPAN|TIMESLOT|DATE|"today TIME" | $comparisonOptions ${timespanFormat}|DATE|"today TIME"  | $timeslotOptions $timeslotParameters ${comparisonInfluencingOptions}
 	    		Only print those ${what:-lines} that match the
-			TIMESPAN|TIMESLOT|DATE|TIME comparison.
+			TIMESPAN|TIMESLOT|DATE|"today TIME"  comparison.
 HELPTEXT
 	    ;;
 	*)  echo "ERROR: Unknown long usage topic \"$1\"!" >&2; return 2;;
@@ -98,8 +98,8 @@ difference of DATE|TIME to now / the second passed DATE|TIME to the first.
 $newerOlderOptions instead are (signed) age comparisons; future dates / dates where
 the second passed DATE|TIME is greater than the first are always newer (unless
 -TIMESPAN, which asserts that it must be at least TIMESPAN in the future) and
-never older. However, for a comparison against DATE|TIME, --newer is exactly the
-same as -gt.
+never older. However, for a comparison against DATE|"today TIME" , --newer is
+exactly the same as -gt.
 This is different from a comparison with --absolute, which would treat
 (greater / smaller) differences the same regardless of being in the past or
 future.
@@ -108,8 +108,8 @@ HELPDESCRIPTION
     echo
     printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderOptions [-]TIMESPAN|TIMESLOT $DATEDIFF_INPUT_ARGS"
     printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonOptions [-]TIMESPAN $DATEDIFF_INPUT_ARGS"
-    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderOptions [-]TIMESPAN|TIMESLOT|DATE|TIME $DATEDIFF_SINGLE_INPUT_ARGS"
-    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonOptions [-]TIMESPAN|DATE|TIME $DATEDIFF_SINGLE_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $newerOlderOptions [-]TIMESPAN|TIMESLOT|DATE|\"today TIME\" $DATEDIFF_SINGLE_INPUT_ARGS"
+    printf 'Usage: %q %s\n' "$DATEDIFF_COMMAND" "... $comparisonOptions [-]TIMESPAN|DATE|\"today TIME\" $DATEDIFF_SINGLE_INPUT_ARGS"
     echo
     cat <<HELPDESCRIPTION
 Test whether ${DATEDIFF_WHAT} falls inside / outside TIMESLOT.
