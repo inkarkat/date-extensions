@@ -55,14 +55,14 @@ getLongUsage()
 	comparisons)
 	    cat <<HELPTEXT
     ${newerOlderOptions} [-]TIMESPAN|TIMESLOT | $comparisonOptions $timespanFormat | $timeslotOptions $timeslotParameters ${comparisonInfluencingOptions}
-	    		Only print those ${what:-lines} that match the
+			Only print those ${what:-lines} that match the
 			TIMESPAN|TIMESLOT comparison.
 HELPTEXT
 	    ;;
 	filter)
 	    cat <<HELPTEXT
     ${newerOlderOptions} [-]TIMESPAN|TIMESLOT|DATE|"today TIME" | $comparisonOptions ${timespanFormat}|DATE|"today TIME"  | $timeslotOptions $timeslotParameters ${comparisonInfluencingOptions}
-	    		Only print those ${what:-lines} that match the
+			Only print those ${what:-lines} that match the
 			TIMESPAN|TIMESLOT|DATE|"today TIME"  comparison.
 HELPTEXT
 	    ;;
@@ -177,9 +177,9 @@ whereas "-le 1d" would yield true as long as the actual difference is within
 $DATEDIFF_ADDITIONAL_OPTIONS
 EXIT STATUS:
     0	Complete success.
-    	With --filter: At least one date passed the comparison.
+	With --filter: At least one date passed the comparison.
     1	The comparison failed; at least one DATE / TIME did not pass it.
-    	With --filter: No date passed the comparison.
+	With --filter: No date passed the comparison.
     2	Bad invocation, wrong or missing command-line arguments.
 $DATEDIFF_ADDITIONAL_EXIT_STATUS
 HELPTEXT
